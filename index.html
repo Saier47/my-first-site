@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>my-first-site · 占位页</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --text: #1f2328;
+      --muted: #656d76;
+      --line: #d0d7de;
+      --accent: #0969da;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+      line-height: 1.7;
+    }
+    main {
+      width: 100%;
+      max-width: 560px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 36px 32px;
+    }
+    h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.2px; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #ddf4ff;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
+    li { margin-bottom: 8px; }
+    li strong { color: var(--text); font-weight: 600; }
+    footer {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="badge">Day 2</div>
+    <h1>my-first-site</h1>
+    <p class="sub">首页占位页 —— 现在这里还没有真正的功能。</p>
+
+    <ul>
+      <li><strong>今天（Day 2）</strong>：建仓库、跑通第一次提交与推送</li>
+      <li><strong>之后</strong>：逐步加上页面与样式</li>
+      <li><strong>Day 7</strong>：才动 MVP 的功能开发</li>
+    </ul>
+
+    <footer>
+      这个文件现在的作用只有一个：证明 Git 和 GitHub 这条链路是通的。
+    </footer>
+  </main>
+</body>
+</html>

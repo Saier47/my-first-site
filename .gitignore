@@ -1,0 +1,21 @@
+# ---- 本地机密文件，绝对不上传 ----
+.env
+.env.local
+.env.*.local
+
+# ---- 依赖 ----
+node_modules/
+
+# ---- 构建产物 ----
+dist/
+build/
+
+# ---- 日志 ----
+*.log
+npm-debug.log*
+
+# ---- 系统与编辑器 ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
