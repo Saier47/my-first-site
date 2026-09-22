@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>my-first-site · 占位页</title>
+  <title>这一周｜课表与 DDL 助手</title>
+
+  <!-- PRD 遗留问题 1：加到手机主屏需要的 meta（实测见板块③） -->
+  <meta name="theme-color" content="#0969da" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+
+  <!-- 样式内嵌，不单独拆 css 文件（TECH_DESIGN 2.3） -->
   <style>
     :root {
       --bg: #f7f8fa;
@@ -12,67 +18,471 @@
       --muted: #656d76;
       --line: #d0d7de;
       --accent: #0969da;
+      --ddl: #cf222e;
+      --overdue: #9a6700;
+      --tab-h: 56px;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 20px;
+      padding: 0 0 calc(var(--tab-h) + 28px);
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
       line-height: 1.7;
+      -webkit-text-size-adjust: 100%;
     }
-    main {
-      width: 100%;
-      max-width: 560px;
+
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      padding: 14px 16px 12px;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+    }
+    .top h1 { margin: 0; font-size: 20px; letter-spacing: -0.2px; }
+    .top .sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+    .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+    .zone { margin-bottom: 18px; }
+    .zone-title { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+
+    /* 占位框：只用于标注「这块还没渲染」，JS 填内容时会把它整块替换掉 */
+    .ph-note {
+      margin: 0;
+      padding: 22px 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+    }
+
+    .zone[hidden] { display: none; }
+
+    /* ---- 一周视图：7 天 ---- */
+    .day {
+      display: grid;
+      grid-template-columns: 62px 1fr;
+      gap: 4px 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
       background: var(--card);
       border: 1px solid var(--line);
+      border-left: 3px solid transparent;
       border-radius: 12px;
-      padding: 36px 32px;
     }
-    h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.2px; }
-    .sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
+    .day.is-today {
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+    .day-head { display: flex; flex-direction: column; }
+    .day-name { font-size: 14px; }
+    .day-date { font-size: 12px; font-weight: 400; color: var(--muted); }
+    .day-tag {
+      align-self: flex-start;
+      margin-top: 2px;
+      padding: 0 6px;
       border-radius: 999px;
       background: #ddf4ff;
       color: var(--accent);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      margin-bottom: 16px;
     }
-    ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14px; }
-    li { margin-bottom: 8px; }
-    li strong { color: var(--text); font-weight: 600; }
-    footer {
-      margin-top: 28px;
-      padding-top: 18px;
-      border-top: 1px solid var(--line);
-      font-size: 13px;
+    .day-empty { grid-column: 2; margin: 0; font-size: 13px; font-weight: 400; color: var(--muted); }
+
+    .items { grid-column: 2; margin: 0; padding: 0; list-style: none; }
+    .item {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 14px;
+    }
+    .item + .item { border-top: 1px dashed var(--line); }
+    .item-time {
+      flex: none;
+      width: 92px;
+      font-size: 12px;
       color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .item-name { flex: 1; }
+    .item-loc { flex: none; font-size: 12px; color: var(--muted); }
+    .item-ddl .item-name { color: var(--ddl); }
+    .item-tag {
+      flex: none;
+      padding: 0 6px;
+      border-radius: 4px;
+      background: #ffebe9;
+      color: var(--ddl);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* ---- 过期区域 ---- */
+    .over-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px 10px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: #fff8c5;
+      border: 1px solid #d4a72c;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .over-when { flex: none; font-size: 12px; font-weight: 600; color: var(--overdue); }
+    .over-title { flex: 1; }
+    .over-note { width: 100%; font-size: 12px; color: var(--muted); }
+
+    /* ---- 清单页：列表条目 ---- */
+    .zone-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .zone-head .zone-title { margin: 0; }
+    .btn-mini {
+      padding: 2px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--accent);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .row-group-title { margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .row-main { flex: 1; min-width: 0; }
+    .row-title { display: block; word-break: break-word; }
+    .row-meta { display: block; font-size: 12px; color: var(--muted); }
+    .row.is-done .row-title { text-decoration: line-through; color: var(--muted); }
+    .row-check { flex: none; width: 18px; height: 18px; margin: 0; }
+    .btn-icon {
+      flex: none;
+      padding: 2px 4px;
+      border: 0;
+      background: none;
+      color: var(--accent);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-icon.danger { color: var(--ddl); }
+    .list-empty { margin: 0; padding: 16px; font-size: 13px; color: var(--muted); background: var(--card); border: 1px dashed var(--line); border-radius: 10px; }
+
+    /* ---- 表单 ---- */
+    .field { display: block; margin-bottom: 12px; }
+    .field-label { display: block; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
+    .field-label em { font-style: normal; font-size: 11px; color: var(--ddl); }
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+      font-size: 15px;
+    }
+    .field-row { display: flex; gap: 12px; }
+    .field-row .field { flex: 1; }
+    .form-error {
+      margin: 0 0 12px;
+      padding: 8px 12px;
+      border: 1px solid #ff8182;
+      border-radius: 8px;
+      background: #ffebe9;
+      color: var(--ddl);
+      font-size: 13px;
+    }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+    .btn-ghost {
+      padding: 10px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* ---- 空状态引导 ---- */
+    .empty-guide {
+      padding: 28px 20px;
+      text-align: center;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .empty-title { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+    .empty-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+    .btn-primary {
+      padding: 10px 18px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tabbar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      display: flex;
+      height: var(--tab-h);
+      background: var(--card);
+      border-top: 1px solid var(--line);
+    }
+    .tab {
+      flex: 1;
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .tab.is-active { color: var(--accent); font-weight: 600; }
+
+    .fab {
+      position: fixed;
+      right: 16px;
+      bottom: calc(var(--tab-h) + 16px);
+      z-index: 20;
+      height: 48px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #ffffff;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal[hidden] { display: none; }
+    .modal-mask { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); }
+    .modal-box {
+      position: relative;
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      overflow: auto;
+      padding: 16px;
+      background: var(--card);
+      border-radius: 16px 16px 0 0;
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .modal-head h2 { margin: 0; font-size: 17px; }
+    .icon-btn {
+      border: 0;
+      background: none;
+      padding: 4px 8px;
+      font-size: 24px;
+      line-height: 1;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    @media (min-width: 600px) {
+      .modal { align-items: center; }
+      .modal-box { border-radius: 16px; }
     }
   </style>
 </head>
 <body>
-  <main>
-    <div class="badge">Day 2</div>
-    <h1>my-first-site</h1>
-    <p class="sub">首页占位页 —— 现在这里还没有真正的功能。</p>
 
-    <ul>
-      <li><strong>今天（Day 2）</strong>：建仓库、跑通第一次提交与推送</li>
-      <li><strong>之后</strong>：逐步加上页面与样式</li>
-      <li><strong>Day 7</strong>：才动 MVP 的功能开发</li>
-    </ul>
+  <!-- 顶部：产品标题 + 当前这一周的范围（范围由 app.js 填） -->
+  <header class="top">
+    <h1>这一周</h1>
+    <p class="sub">课表与 DDL 叠在同一根时间轴上 · <span id="week-range">周一到周日</span></p>
+  </header>
 
-    <footer>
-      这个文件现在的作用只有一个：证明 Git 和 GitHub 这条链路是通的。
-    </footer>
-  </main>
+  <div class="wrap">
+
+    <!-- 视图一：一周视图（F1）。打开就在这。 -->
+    <main id="view-week" class="view">
+      <section class="zone" id="overdue-zone">
+        <h2 class="zone-title">已经过期（还没打勾的）</h2>
+        <div id="overdue-list">
+          <p class="ph-note">过期区域 · 由 app.js 渲染</p>
+        </div>
+      </section>
+
+      <section class="zone">
+        <h2 class="zone-title">本周</h2>
+        <div id="week-list">
+          <p class="ph-note">7 天 + 课程与 DDL · 由 app.js 渲染</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- 视图二：清单页（课程 F2/F5 + DDL F3）。底部导航切过来才显示。
+         说明：PRD 要求「只有 2 个页面、2 个导航入口」，而 F2 要课程列表、
+         F3/B4 要 DDL 也能在列表里找到 —— 只能两个列表同页。 -->
+    <main id="view-courses" class="view" hidden>
+      <section class="zone">
+        <div class="zone-head">
+          <h2 class="zone-title">课程</h2>
+          <button type="button" class="btn-mini" data-action="add" data-kind="course">+ 课程</button>
+        </div>
+        <div id="course-list"></div>
+      </section>
+
+      <section class="zone">
+        <div class="zone-head">
+          <h2 class="zone-title">DDL</h2>
+          <button type="button" class="btn-mini" data-action="add" data-kind="ddl">+ DDL</button>
+        </div>
+        <div id="ddl-list"></div>
+      </section>
+    </main>
+
+  </div>
+
+  <!-- 全局「+ 添加」：任何页面都能呼出表单弹层。
+       不带 data-kind —— 由 app.js 按当前页面判断（一周视图加 DDL、清单页加课程） -->
+  <button type="button" class="fab" id="btn-add" data-action="add">+ 添加</button>
+
+  <!-- 底部导航：PRD 2.2 第 2 条要求只有 2 个入口，不许有第 3 个 -->
+  <nav class="tabbar">
+    <button type="button" class="tab is-active" data-view="week">一周视图</button>
+    <button type="button" class="tab" data-view="courses">清单</button>
+  </nav>
+
+  <!-- 表单弹层：课程（F2）与 DDL（F3）共用这个位置 -->
+  <div class="modal" id="modal" hidden>
+    <div class="modal-mask" data-close></div>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-head">
+        <h2 id="modal-title">添加</h2>
+        <button type="button" class="icon-btn" data-close aria-label="关闭">×</button>
+      </header>
+
+      <div id="modal-body">
+
+        <!-- 课程表单：5 个字段，4 个必填（PRD F2） -->
+        <form id="form-course" class="form" hidden novalidate>
+          <p class="form-error" id="err-course" hidden></p>
+
+          <label class="field">
+            <span class="field-label">课程名 <em>必填</em></span>
+            <input type="text" id="c-name" maxlength="40" placeholder="例如：高等数学" />
+          </label>
+
+          <label class="field">
+            <span class="field-label">星期几 <em>必填</em></span>
+            <select id="c-day">
+              <option value="">请选择</option>
+              <option value="1">周一</option>
+              <option value="2">周二</option>
+              <option value="3">周三</option>
+              <option value="4">周四</option>
+              <option value="5">周五</option>
+              <option value="6">周六</option>
+              <option value="7">周日</option>
+            </select>
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">开始时间 <em>必填</em></span>
+              <input type="time" id="c-start" />
+            </label>
+            <label class="field">
+              <span class="field-label">结束时间 <em>必填</em></span>
+              <input type="time" id="c-end" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field-label">上课地点</span>
+            <input type="text" id="c-location" maxlength="30" placeholder="例如：A101（可不填）" />
+          </label>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" data-close>取消</button>
+            <button type="submit" class="btn-primary">保存</button>
+          </div>
+        </form>
+
+        <!-- DDL 表单：4 个字段，3 个必填（PRD F3） -->
+        <form id="form-ddl" class="form" hidden novalidate>
+          <p class="form-error" id="err-ddl" hidden></p>
+
+          <label class="field">
+            <span class="field-label">事项名称 <em>必填</em></span>
+            <input type="text" id="d-title" maxlength="40" placeholder="例如：交数据结构实验报告" />
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field-label">截止日期 <em>必填</em></span>
+              <input type="date" id="d-date" />
+            </label>
+            <label class="field">
+              <span class="field-label">截止时间 <em>必填</em></span>
+              <input type="time" id="d-time" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field-label">备注</span>
+            <input type="text" id="d-note" maxlength="60" placeholder="例如：第 3 章之后的题（可不填）" />
+          </label>
+
+          <div class="form-actions">
+            <button type="button" class="btn-ghost" data-close>取消</button>
+            <button type="submit" class="btn-primary">保存</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据层：全项目唯一碰 localStorage 的文件 -->
+  <script src="store.js"></script>
+  <!-- 视图层：把 store.js 的数据翻译成页面。必须排在 store.js 之后 -->
+  <script src="app.js"></script>
+
 </body>
 </html>
