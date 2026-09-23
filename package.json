@@ -1,0 +1,13 @@
+{
+  "name": "my-first-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "这一周 · 课表与 DDL 助手（学期学习项目）",
+  "scripts": {
+    "check": "node check-day8.js",
+    "start": "python -m http.server 8000 --bind 127.0.0.1"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}

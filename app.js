@@ -12,12 +12,57 @@
  *   → 叠在同一天里按时间先后排 → 挂到页面上
  * 「过期」的判定口径见 PRD F1：due_date + due_time 拼成完整截止时刻，
  * 当前时刻晚于它才算过期；勾了「已完成」的永远不算过期。
+ *
+ * ===== Day 8 追加：四种页面状态 =====
+ * 一个页面只要去「拿数据」，就必然有四种状态，它们是并列的、都得做：
+ *
+ *   ① 加载中（loading）—— 数据还没回来。要给骨架屏，不能白屏。
+ *   ② 有数据（ready）  —— 正常渲染。这是唯一会被截图的一种。
+ *   ③ 空（empty）      —— 请求成功，但一条数据都没有。
+ *                        这是最容易被忽略的一种：它长得跟正常页面几乎一样，
+ *                        只是列表是空的。而新用户第一次打开看到的就是它。
+ *   ④ 出错（error）    —— 拿数据失败了。要告诉用户发生了什么 + 给条出路（重试）。
+ *
+ * 为什么现在就要做：本期数据从 localStorage 读，几乎不会失败，所以这四种状态
+ * 看不出必要性。但 Day 23 接数据库之后，网络会超时、服务器会挂，③ 和 ④ 会变成
+ * 每天都会发生的事。现在把位置留好，那时候只换数据源，界面不用重写。
+ *
+ * 现在怎么验证这四种状态：改 mock-data.js 顶部的 DATA_SOURCE，刷新页面。
  * ===================================================================== */
 
 (function () {
   'use strict';
 
   const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+  /* ======================= 数据来源开关（Day 8） ======================= */
+
+  /* 用真数据还是假数据，由 index.html 里的注释开关决定（见文件末尾说明）。
+     判断口径：mock-data.js 加载了、且它的开关不是 'off'，就用假数据。
+     这样切回真数据只要改一处，app.js 一个字不用动。 */
+  function usingMock() {
+    return !!(window.MockStore && window.MockStore.source && window.MockStore.source !== 'off');
+  }
+
+  function mockSource() {
+    return (window.MockStore && window.MockStore.source) || 'normal';
+  }
+
+  /* 统一的「拿数据」入口。以后不管接多少个数据源，都只改这一个函数。
+     返回 { courses, ddls } —— 取不到就抛错，由 render 统一接住。
+
+     ⚠️ 这里用 Promise.all 并发取，不要写成两次 await 串行：
+       串行 = 600ms + 600ms = 1200ms；并发 = max(600, 600) = 600ms。
+       本期数据在本地看不出差别，Day 23 换成网络请求后，
+       串行会让首屏等待时间直接翻倍 —— 这个坑现在不踩，是因为现在就能改。 */
+  async function loadData() {
+    if (usingMock()) {
+      const [courses, ddls] = await Promise.all([MockStore.listCourses(), MockStore.listDdls()]);
+      return { courses: courses, ddls: ddls };
+    }
+    const [courses, ddls] = await Promise.all([Store.listCourses(), Store.listDdls()]);
+    return { courses: courses, ddls: ddls };
+  }
 
   /* ======================= 日期工具 ======================= */
 
@@ -81,6 +126,40 @@
     return document.getElementById(id);
   }
 
+  /* ======================= 状态骨架（Day 8 新增） ======================= */
+
+  /* ① 加载中：骨架屏。
+     为什么用骨架屏而不是一个转圈图标：骨架屏把"马上要出现什么东西"提前画出来，
+     视觉上不跳；转圈会让整页内容在数据到达时突然位移。这是业界现在的通行做法。 */
+  function skeletonHtml() {
+    let html = '<div class="skeleton-wrap">';
+    for (let i = 0; i < 7; i++) {
+      html += '<div class="sk-day">' +
+        '<div class="sk-bar sk-head"></div>' +
+        '<div class="sk-bar sk-card"></div>' +
+        '<div class="sk-bar sk-card sk-short"></div>' +
+        '</div>';
+    }
+    return html + '</div>';
+  }
+
+  /* ④ 出错：说清楚"出了什么事" + 给一条出路（重试）。
+     只写一句"加载失败"是不合格的 —— 用户不知道该干嘛。 */
+  function errorHtml(message) {
+    return '<div class="state-box state-error">' +
+      '<p class="state-title">没能读到数据</p>' +
+      '<p class="state-sub">' + esc(message || '数据读取失败了。') + '</p>' +
+      '<button type="button" class="btn-primary" data-action="retry">重试一次</button>' +
+      '</div>';
+  }
+
+  function renderState(html) {
+    const box = el('week-list');
+    if (box) box.innerHTML = html;
+    const zone = el('overdue-zone');
+    if (zone) zone.hidden = true;        // 状态页里不显示过期区，避免一半有内容一半是骨架
+  }
+
   /* ======================= 渲染：本周范围 ======================= */
 
   function renderRange(now) {
@@ -128,7 +207,7 @@
     }
 
     return '<li class="item item-ddl">' +
-      '<span class="item-time">' + esc(d.due_time) + '</span>' +
+      '<span class="item-time">' + esc(d.due_time) + ' 截止</span>' +
       '<span class="item-name">' + esc(d.title) + '</span>' +
       '<span class="item-tag">DDL</span>' +
       '</li>';
@@ -140,7 +219,8 @@
     const box = el('week-list');
     if (!box) return;
 
-    // 边界：一条数据都没有 → 给引导语 + 一个添加按钮，不能是白屏（PRD B1）
+    // ③ 空状态（边界：一条数据都没有）→ 给引导语 + 一个添加按钮，不能是白屏（PRD B1）
+    // 注意：空状态是「加载成功了，只是没数据」，和「加载中」是两码事，别混。
     if (courses.length === 0 && ddls.length === 0) {
       box.innerHTML =
         '<div class="empty-guide">' +
@@ -184,8 +264,8 @@
       html += '<div class="day' + (isToday ? ' is-today' : '') + '">';
       html += '<div class="day-head">' +
                 '<span class="day-name">' + DAY_NAMES[i] + '</span>' +
-                '<span class="day-date">' + md(day) + '</span>' +
                 (isToday ? '<span class="day-tag">今天</span>' : '') +
+                '<span class="day-date">' + md(day) + '</span>' +
               '</div>';
 
       if (items.length === 0) {
@@ -450,9 +530,17 @@
       else t.className = on ? 'tab is-active' : 'tab';
     });
 
-    // 「+ 添加」跟着当前页面变：一周视图最常加 DDL（场景 B），清单页加课程
+    // 「+ 添加」跟着当前页面变：一周视图最常加 DDL（场景 B），清单页加课程。
+    // 窄屏（≤430px）上文字太长会顶出屏幕，所以同时挂上短文案到 title，
+    // 由 CSS 在窄屏把按钮收成一个圆形加号（见样式区的媒体查询）。
     const fab = el('btn-add');
-    if (fab) fab.textContent = name === 'week' ? '+ 添加 DDL' : '+ 添加课程';
+    if (fab) {
+      const long = name === 'week' ? '+ 添加 DDL' : '+ 添加课程';
+      fab.textContent = long;
+      fab.setAttribute('data-label-long', long);
+      fab.setAttribute('data-label-short', '+');
+      fab.setAttribute('aria-label', name === 'week' ? '添加 DDL' : '添加课程');
+    }
 
     if (window.scrollTo) window.scrollTo(0, 0);
   }
@@ -481,6 +569,9 @@
       openEdit(kind, id);
     } else if (action === 'delete') {
       removeRecord(kind, id);
+    } else if (action === 'retry') {
+      // ④ 出错状态里那颗「重试一次」—— 重新走一遍 render，四种状态流程原样复用
+      render().catch(function (err) { console.error('[app] 重试失败', err); });
     }
   }
 
@@ -501,12 +592,42 @@
 
   /* ======================= 总调度 ======================= */
 
+  /* 四种状态的统一入口（Day 8 重写）。
+     顺序很重要：先画「加载中」，再去拿数据，最后按结果画「有数据 / 空 / 出错」。
+     如果反过来先拿数据再画，加载中状态就永远看不见 —— 那时候数据已经回来了。 */
   async function render() {
-    const now = new Date();                              // 「现在」只取一次，整页渲染用同一个瞬间
-    const courses = await Store.listCourses();
-    const ddls = await Store.listDdls();
+    const now = new Date();   // 「现在」只取一次，整页渲染用同一个瞬间
 
+    // ④ 出错状态：由 mock 开关直接模拟，方便你亲眼看到它长什么样
+    if (usingMock() && mockSource() === 'error') {
+      renderRange(now);
+      renderState(errorHtml('（这是 Day 8 的模拟错误，用来验证错误状态长什么样。）'));
+      renderCourseList([]);
+      renderDdlList([], now);
+      return;
+    }
+
+    // ① 加载中：先把骨架铺上，再去拿数据
     renderRange(now);
+    renderState(skeletonHtml());
+
+    let data;
+    try {
+      data = await loadData();
+    } catch (err) {
+      // 拿数据失败 —— 这是 ④ 出错状态在真实场景里被触发的地方
+      console.error('[app] 读取数据失败', err);
+      renderState(errorHtml(err && err.message ? err.message : ''));
+      renderCourseList([]);
+      renderDdlList([], now);
+      return;
+    }
+
+    // 假数据模式下，'empty' 开关 = 拿到的是空数组（模拟"读成功但没数据"）
+    const courses = (usingMock() && mockSource() === 'empty') ? [] : data.courses;
+    const ddls = (usingMock() && mockSource() === 'empty') ? [] : data.ddls;
+
+    // ② 有数据 / ③ 空状态 —— 都交给 renderWeek 判断（它内部会看数组是不是空的）
     renderOverdue(ddls.filter(function (d) {
       return isOverdue(d, now);
     }).sort(byDeadline));

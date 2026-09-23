@@ -6,21 +6,62 @@
   <title>这一周｜课表与 DDL 助手</title>
 
   <!-- PRD 遗留问题 1：加到手机主屏需要的 meta（实测见板块③） -->
-  <meta name="theme-color" content="#0969da" />
+  <!-- Day 8：主题色跟着主视图换成深色科技风 -->
+  <meta name="theme-color" content="#080b14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
 
   <!-- 样式内嵌，不单独拆 css 文件（TECH_DESIGN 2.3） -->
   <style>
+    /* ===================================================================
+     * Day 8｜主视图换肤：深色科技风
+     * -------------------------------------------------------------------
+     * 只改样式，不改结构 —— 元素 ID、data-action 属性全部保持 Day 7 原样，
+     * 这样昨天验过的交互（点击、表单、删除）不会因为换皮而失效。
+     *
+     * 一句话说清「科技感」是怎么做出来的（4 个手法）：
+     *   1. 深底 + 冷色：近黑的蓝紫底（#080b14），不用纯黑 —— 纯黑发死，
+     *      偏蓝的黑有纵深；主色用青蓝（#3ddbd9 / #4d7cfe）
+     *   2. 微光：标题和关键数字带一点 glow，卡片悬浮时才亮 —— 光要有取舍，
+     *      全页面都发光 = 全页面都不发光
+     *   3. 层次：靠「边框亮度」而不是靠阴影分层次。深色下阴影看不见，
+     *      一条 1px 的半透明高光边比 box-shadow 有效得多
+     *   4. 数字用等宽字型（tabular-nums）：时间竖着排能对齐，这是"表格感"
+     *      的来源，也是让人觉得"能填东西"的关键 —— 乱糟糟的排版会劝退录入
+     * =================================================================== */
     :root {
-      --bg: #f7f8fa;
-      --card: #ffffff;
-      --text: #1f2328;
-      --muted: #656d76;
-      --line: #d0d7de;
-      --accent: #0969da;
-      --ddl: #cf222e;
-      --overdue: #9a6700;
+      /* —— 底色三层：底 / 面板 / 抬起 —— */
+      --bg: #080b14;
+      --bg-glow-1: rgba(61, 219, 217, 0.07);
+      --bg-glow-2: rgba(77, 124, 254, 0.09);
+      --panel: rgba(255, 255, 255, 0.032);
+      --panel-hover: rgba(255, 255, 255, 0.058);
+
+      /* —— 文字四阶：主 / 次 / 弱 / 极弱 —— */
+      --text: #e8ecf6;
+      --text-2: #b8c2d9;
+      --muted: #7d8aa6;
+      --faint: #4e5a75;
+
+      /* —— 线条：深色下靠它分层次，需要半透明 —— */
+      --line: rgba(125, 150, 200, 0.16);
+      --line-strong: rgba(125, 150, 200, 0.30);
+      --line-glow: rgba(61, 219, 217, 0.45);
+
+      /* —— 语义色 —— */
+      --accent: #3ddbd9;
+      --accent-2: #4d7cfe;
+      --accent-soft: rgba(61, 219, 217, 0.12);
+      --accent-line: rgba(61, 219, 217, 0.34);
+      --ddl: #ff6b81;
+      --ddl-soft: rgba(255, 107, 129, 0.13);
+      --ddl-line: rgba(255, 107, 129, 0.34);
+      --overdue: #ffc152;
+      --overdue-soft: rgba(255, 193, 82, 0.11);
+      --overdue-line: rgba(255, 193, 82, 0.34);
+      --ok: #3ddbd9;
+
       --tab-h: 56px;
+      --radius: 14px;
     }
     * { box-sizing: border-box; }
     body {
@@ -31,22 +72,52 @@
       font-family: -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
       line-height: 1.7;
       -webkit-text-size-adjust: 100%;
+      /* 两团冷光晕 + 极细网格：网格是"科技感"最廉价的来源，一层渐变就够 */
+      background-image:
+        radial-gradient(900px 480px at 12% -8%, var(--bg-glow-1), transparent 62%),
+        radial-gradient(760px 420px at 92% 4%, var(--bg-glow-2), transparent 60%),
+        linear-gradient(rgba(125, 150, 200, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(125, 150, 200, 0.045) 1px, transparent 1px);
+      background-size: auto, auto, 44px 44px, 44px 44px;
+      background-attachment: fixed, fixed, fixed, fixed;
     }
+    ::selection { background: rgba(61, 219, 217, 0.30); }
+
+    /* 深色下的滚动条也顺手压暗，否则右边一条白杠很跳 */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(125, 150, 200, 0.22);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(125, 150, 200, 0.38); }
 
     .top {
       position: sticky;
       top: 0;
       z-index: 10;
-      padding: 14px 16px 12px;
-      background: var(--card);
+      padding: 15px 18px 13px;
+      background: rgba(8, 11, 20, 0.82);
+      /* 毛玻璃：内容滚到标题下面时会虚化 —— 这是"层级"而不是"装饰" */
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
       border-bottom: 1px solid var(--line);
     }
-    .top h1 { margin: 0; font-size: 20px; letter-spacing: -0.2px; }
-    .top .sub { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+    .top h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.5px;
+      /* 标题微光：整页只有这里和"今天"带 glow，多了就俗 */
+      text-shadow: 0 0 22px rgba(61, 219, 217, 0.42);
+    }
+    .top .sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+    .top .sub #week-range { color: var(--accent); font-variant-numeric: tabular-nums; }
 
-    .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
-    .zone { margin-bottom: 18px; }
-    .zone-title { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    /* 一周视图是 7 列横向铺开的，所以容器要比别的页面宽 ——
+       7 列挤在 1080px 里每列只有 140px，「交数据结构实验报告」会被折成三行。
+       给它放宽到 1680px，让每列有 220px 左右，一条标题基本一行放得下。 */
+    .wrap { max-width: 1680px; margin: 0 auto; padding: 18px 20px; }
+    .view[hidden] { display: none; }
 
     /* 占位框：只用于标注「这块还没渲染」，JS 填内容时会把它整块替换掉 */
     .ph-note {
@@ -54,72 +125,175 @@
       padding: 22px 16px;
       text-align: center;
       font-size: 13px;
-      color: var(--muted);
-      background: var(--card);
-      border: 1px dashed var(--line);
-      border-radius: 12px;
+      color: var(--faint);
+      background: var(--panel);
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
     }
 
     .zone[hidden] { display: none; }
 
-    /* ---- 一周视图：7 天 ---- */
-    .day {
+    /* ---- 一周视图：Day 8 起改成「7 列卡片列」 ----
+       布局取舍得说清楚（Day 8 拍板 A 方案）：
+         桌面 / 大屏 → 7 列并排，一屏看完一周
+         手机竖屏   → 每天一行，纵向排。理由是 PRD 核心场景 A 是
+                      「晚上躺床上看明天有什么」——手机上横向滑着找今天
+                      违背这个场景。窄屏用媒体查询退回纵向即可。
+       两种排法共用同一套 day / items 结构，所以不用写两遍逻辑。 */
+    #week-list {
       display: grid;
-      grid-template-columns: 62px 1fr;
-      gap: 4px 12px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-left: 3px solid transparent;
-      border-radius: 12px;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: start;
     }
-    .day.is-today {
-      border-left-color: var(--accent);
-      font-weight: 600;
-    }
-    .day-head { display: flex; flex-direction: column; }
-    .day-name { font-size: 14px; }
-    .day-date { font-size: 12px; font-weight: 400; color: var(--muted); }
-    .day-tag {
-      align-self: flex-start;
-      margin-top: 2px;
-      padding: 0 6px;
-      border-radius: 999px;
-      background: #ddf4ff;
-      color: var(--accent);
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .day-empty { grid-column: 2; margin: 0; font-size: 13px; font-weight: 400; color: var(--muted); }
 
-    .items { grid-column: 2; margin: 0; padding: 0; list-style: none; }
-    .item {
+    .day {
+      position: relative;
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      /* 悬停时抬起 + 边框亮起来：这就是"想往上面写东西"的即时反馈 */
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+    .day:hover {
+      background: var(--panel-hover);
+      border-color: var(--line-strong);
+      transform: translateY(-2px);
+    }
+
+    /* 今天这一列：顶部一道光带 + 青蓝描边 + 极淡青底。
+       三个信号叠加是有意为之 —— 只靠颜色一种信号，色弱用户会看不见。 */
+    .day.is-today {
+      background: linear-gradient(180deg, var(--accent-soft), transparent 60%), var(--panel);
+      border-color: var(--accent-line);
+      box-shadow: 0 0 0 1px rgba(61, 219, 217, 0.10), 0 10px 30px -14px rgba(61, 219, 217, 0.45);
+    }
+    .day.is-today::before {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: -1px;
+      height: 2px;
+      border-radius: 0 0 2px 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      box-shadow: 0 0 12px rgba(61, 219, 217, 0.75);
+    }
+
+    .day-head {
       display: flex;
       align-items: baseline;
       gap: 8px;
-      padding: 4px 0;
-      font-size: 14px;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--line);
     }
-    .item + .item { border-top: 1px dashed var(--line); }
-    .item-time {
-      flex: none;
-      width: 92px;
+    .day-name {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      color: var(--text-2);
+    }
+    .day.is-today .day-name { color: var(--accent); }
+    .day-date {
+      margin-left: auto;
       font-size: 12px;
-      color: var(--muted);
+      color: var(--faint);
       font-variant-numeric: tabular-nums;
     }
-    .item-name { flex: 1; }
-    .item-loc { flex: none; font-size: 12px; color: var(--muted); }
-    .item-ddl .item-name { color: var(--ddl); }
-    .item-tag {
+    .day-tag {
       flex: none;
-      padding: 0 6px;
-      border-radius: 4px;
-      background: #ffebe9;
-      color: var(--ddl);
+      padding: 1px 8px;
+      border: 1px solid var(--accent-line);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
       font-size: 11px;
       font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .day-empty {
+      margin: 0;
+      padding: 10px 0;
+      font-size: 13px;
+      color: var(--faint);
+    }
+
+    .items { margin: 0; padding: 0; list-style: none; }
+
+    /* 卡片：一条记录 = 一张卡片。左侧一道竖色条区分类型（课程=青、DDL=粉） */
+    .item {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 2px 8px;
+      padding: 9px 10px 9px 12px;
+      margin-bottom: 7px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 13.5px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .item:last-child { margin-bottom: 0; }
+    .item::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(61, 219, 217, 0.55);
+    }
+    .item:hover {
+      background: rgba(255, 255, 255, 0.065);
+      border-color: var(--line-strong);
+    }
+
+    .item-time {
+      flex: none;
+      width: 100%;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.3px;
+    }
+    .item-name {
+      flex: 1;
+      min-width: 0;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .item-loc { flex: none; font-size: 11.5px; color: var(--faint); }
+
+    /* DDL 卡片：换色 + 换竖条 + 加一个标签。
+       三重区分（颜色 / 竖条 / 标签）不能只做颜色 —— PRD F1 要求
+       「DDL 要能被一眼认出来」，色弱用户也得认得出。 */
+    .item-ddl::before {
+      background: var(--ddl);
+      box-shadow: 0 0 8px rgba(255, 107, 129, 0.55);
+    }
+    .item-ddl {
+      background: linear-gradient(90deg, var(--ddl-soft), rgba(255, 255, 255, 0.03) 55%);
+      border-color: var(--ddl-line);
+    }
+    .item-ddl .item-time { color: var(--ddl); }
+    .item-ddl .item-name { color: var(--text); font-weight: 500; }
+    .item-tag {
+      flex: none;
+      padding: 0 7px;
+      border-radius: 5px;
+      background: var(--ddl-soft);
+      border: 1px solid var(--ddl-line);
+      color: var(--ddl);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
     }
 
     /* ---- 过期区域 ---- */
@@ -128,124 +302,309 @@
       flex-wrap: wrap;
       align-items: baseline;
       gap: 4px 10px;
-      padding: 8px 12px;
+      padding: 10px 14px;
       margin-bottom: 6px;
-      background: #fff8c5;
-      border: 1px solid #d4a72c;
+      background: linear-gradient(90deg, var(--overdue-soft), rgba(255, 255, 255, 0.03) 55%);
+      border: 1px solid var(--overdue-line);
+      border-left: 3px solid var(--overdue);
       border-radius: 10px;
       font-size: 14px;
+      transition: border-color 0.15s ease;
     }
-    .over-when { flex: none; font-size: 12px; font-weight: 600; color: var(--overdue); }
-    .over-title { flex: 1; }
+    .over-item:hover { border-color: var(--overdue); }
+    .over-when {
+      flex: none;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--overdue);
+      font-variant-numeric: tabular-nums;
+    }
+    .over-title { flex: 1; color: var(--text); }
     .over-note { width: 100%; font-size: 12px; color: var(--muted); }
 
     /* ---- 清单页：列表条目 ---- */
+    .zone { margin-bottom: 20px; }
+    .zone-title {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
     .zone-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .zone-head .zone-title { margin: 0; }
     .btn-mini {
-      padding: 2px 10px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--card);
+      padding: 4px 12px;
+      border: 1px solid var(--accent-line);
+      border-radius: 7px;
+      background: var(--accent-soft);
       color: var(--accent);
       font: inherit;
       font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
     }
-    .row-group-title { margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+    .btn-mini:hover {
+      background: rgba(61, 219, 217, 0.20);
+      box-shadow: 0 0 14px -2px rgba(61, 219, 217, 0.5);
+    }
+    .row-group-title {
+      margin: 16px 0 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.8px;
+    }
     .row {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 10px 12px;
+      padding: 11px 13px;
       margin-bottom: 6px;
-      background: var(--card);
+      background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: 11px;
       font-size: 14px;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
+    .row:hover { background: var(--panel-hover); border-color: var(--line-strong); }
     .row-main { flex: 1; min-width: 0; }
-    .row-title { display: block; word-break: break-word; }
-    .row-meta { display: block; font-size: 12px; color: var(--muted); }
-    .row.is-done .row-title { text-decoration: line-through; color: var(--muted); }
-    .row-check { flex: none; width: 18px; height: 18px; margin: 0; }
+    .row-title { display: block; word-break: break-word; color: var(--text); }
+    .row-meta {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .row.is-done .row-title { text-decoration: line-through; color: var(--faint); }
+    .row.is-done .row-meta { color: var(--faint); }
+    /* 勾选框：深色下系统默认的白色小方块很突兀，重画一个 */
+    .row-check {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .row-check:hover { border-color: var(--accent-line); }
+    .row-check:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px -1px rgba(61, 219, 217, 0.6);
+    }
+    .row-check:checked::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 1px;
+      width: 5px;
+      height: 10px;
+      border: solid #06231f;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
     .btn-icon {
       flex: none;
-      padding: 2px 4px;
+      padding: 2px 5px;
       border: 0;
       background: none;
-      color: var(--accent);
+      color: var(--muted);
       font: inherit;
       font-size: 13px;
       cursor: pointer;
+      border-radius: 5px;
+      transition: color 0.15s ease, background 0.15s ease;
     }
-    .btn-icon.danger { color: var(--ddl); }
-    .list-empty { margin: 0; padding: 16px; font-size: 13px; color: var(--muted); background: var(--card); border: 1px dashed var(--line); border-radius: 10px; }
+    .btn-icon:hover { color: var(--accent); background: var(--accent-soft); }
+    .btn-icon.danger:hover { color: var(--ddl); background: var(--ddl-soft); }
+    .list-empty {
+      margin: 0;
+      padding: 18px;
+      font-size: 13px;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px dashed var(--line-strong);
+      border-radius: 11px;
+    }
 
     /* ---- 表单 ---- */
-    .field { display: block; margin-bottom: 12px; }
-    .field-label { display: block; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
+    .field { display: block; margin-bottom: 13px; }
+    .field-label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--text-2); }
     .field-label em { font-style: normal; font-size: 11px; color: var(--ddl); }
     .field input,
     .field select {
       width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--bg);
+      padding: 11px 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      /* 输入框比卡片再亮一档：填东西的地方要"看起来能写" */
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text);
       font: inherit;
       font-size: 15px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
-    .field-row { display: flex; gap: 12px; }
+    .field input::placeholder { color: var(--faint); }
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.075);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(61, 219, 217, 0.16);
+    }
+    /* 深色下 select 的下拉箭头默认是黑的，看不见 —— 换成浅色自绘箭头 */
+    .field select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237d8aa6' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 13px center;
+      padding-right: 34px;
+    }
+    .field select option { background: #10141f; color: var(--text); }
+    /* 日期/时间控件的图标默认是深色的，在深底上看不见 —— 反相过来 */
+    .field input[type="date"]::-webkit-calendar-picker-indicator,
+    .field input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.75);
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .field input[type="date"]::-webkit-calendar-picker-indicator:hover,
+    .field input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    .field-row { display: flex; gap: 13px; }
     .field-row .field { flex: 1; }
     .form-error {
-      margin: 0 0 12px;
-      padding: 8px 12px;
-      border: 1px solid #ff8182;
-      border-radius: 8px;
-      background: #ffebe9;
+      margin: 0 0 13px;
+      padding: 9px 13px;
+      border: 1px solid var(--ddl-line);
+      border-radius: 9px;
+      background: var(--ddl-soft);
       color: var(--ddl);
       font-size: 13px;
     }
-    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
     .btn-ghost {
       padding: 10px 18px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--card);
-      color: var(--text);
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-2);
       font: inherit;
       font-size: 14px;
       cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
     }
+    .btn-ghost:hover { background: var(--panel-hover); color: var(--text); }
 
     /* ---- 空状态引导 ---- */
     .empty-guide {
-      padding: 28px 20px;
+      grid-column: 1 / -1;
+      padding: 44px 24px;
       text-align: center;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
+      background: var(--panel);
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
     }
-    .empty-title { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
-    .empty-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+    .empty-title {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+    .empty-sub { margin: 0 0 20px; font-size: 13px; color: var(--muted); }
     .btn-primary {
-      padding: 10px 18px;
+      padding: 11px 22px;
       border: 0;
-      border-radius: 8px;
-      background: var(--accent);
-      color: #ffffff;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #04202b;
       font: inherit;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.3px;
       cursor: pointer;
+      box-shadow: 0 8px 24px -8px rgba(61, 219, 217, 0.65);
+      transition: box-shadow 0.15s ease, transform 0.15s ease;
     }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px -8px rgba(61, 219, 217, 0.85);
+    }
+
+    /* ---- 四种页面状态的样式（Day 8 新增） ----
+       ① 加载中 = 骨架屏；③ 空 = .empty-guide（上面已有）；④ 出错 = .state-error */
+
+    /* 骨架屏：7 个灰块占位，加一道流动的光扫过去表示"正在加载"。
+       光扫动的动画就是「加载中」和「加载完但没数据」的视觉区别所在 ——
+       静止的灰块会被误认成内容，动起来才知道是在忙。 */
+    .skeleton-wrap {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+    .sk-day {
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .sk-bar {
+      border-radius: 6px;
+      background: linear-gradient(90deg,
+        rgba(125, 150, 200, 0.10) 25%,
+        rgba(125, 150, 200, 0.22) 37%,
+        rgba(125, 150, 200, 0.10) 63%);
+      background-size: 400% 100%;
+      animation: sk-shimmer 1.4s ease-in-out infinite;
+    }
+    .sk-head { height: 14px; width: 60%; margin-bottom: 10px; }
+    .sk-card { height: 42px; margin-bottom: 7px; }
+    .sk-short { width: 70%; margin-bottom: 0; }
+    @keyframes sk-shimmer {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+    /* 用户系统里如果设了「减少动态效果」，就别扫了（无障碍要求） */
+    @media (prefers-reduced-motion: reduce) {
+      .sk-bar { animation: none; }
+    }
+
+    /* 状态盒：空 / 出错的通用外壳 */
+    .state-box {
+      grid-column: 1 / -1;
+      padding: 44px 24px;
+      text-align: center;
+      border-radius: var(--radius);
+    }
+    .state-title {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .state-sub { margin: 0 0 20px; font-size: 13px; color: var(--muted); }
+    /* 出错用暖红：和「过期」的暖黄呼应，但更重一档 —— 错误比提醒更需要被看见 */
+    .state-error {
+      background: linear-gradient(180deg, var(--ddl-soft), rgba(255, 255, 255, 0.02) 70%), var(--panel);
+      border: 1px solid var(--ddl-line);
+    }
+    .state-error .state-title { color: var(--ddl); }
 
     .tabbar {
       position: fixed;
@@ -255,10 +614,13 @@
       z-index: 20;
       display: flex;
       height: var(--tab-h);
-      background: var(--card);
+      background: rgba(8, 11, 20, 0.86);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      backdrop-filter: blur(14px) saturate(140%);
       border-top: 1px solid var(--line);
     }
     .tab {
+      position: relative;
       flex: 1;
       border: 0;
       background: none;
@@ -266,8 +628,23 @@
       font-size: 14px;
       color: var(--muted);
       cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: color 0.15s ease;
     }
+    .tab:hover { color: var(--text-2); }
     .tab.is-active { color: var(--accent); font-weight: 600; }
+    .tab.is-active::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 0;
+      width: 34px;
+      height: 2px;
+      border-radius: 0 0 2px 2px;
+      background: var(--accent);
+      box-shadow: 0 0 12px rgba(61, 219, 217, 0.85);
+    }
 
     .fab {
       position: fixed;
@@ -278,12 +655,43 @@
       padding: 0 22px;
       border: 0;
       border-radius: 999px;
-      background: var(--accent);
-      color: #ffffff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #04202b;
       font: inherit;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.3px;
       cursor: pointer;
+      white-space: nowrap;      /* 别让文字换行把按钮撑破 */
+      max-width: calc(100vw - 32px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 10px 28px -8px rgba(61, 219, 217, 0.7);
+      transition: box-shadow 0.15s ease, transform 0.15s ease;
+    }
+    .fab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 34px -8px rgba(61, 219, 217, 0.95);
+    }
+    /* 窄屏上「+ 添加 DDL」放不下会顶出屏幕 —— 缩成圆形加号。
+       做法：把原文字字号设成 0（仍在 DOM 里，读屏软件和测试都还能读到），
+       再用 ::after 画一个「+」。这样"隐藏文案"只是视觉上的，
+       无障碍和自动化测试都不受影响。 */
+    @media (max-width: 430px) {
+      .fab {
+        height: 54px;
+        width: 54px;
+        padding: 0;
+        font-size: 0;
+        text-align: center;
+      }
+      .fab::after {
+        content: "+";
+        font-size: 26px;
+        font-weight: 400;
+        line-height: 54px;
+        letter-spacing: 0;
+      }
     }
 
     .modal {
@@ -295,24 +703,32 @@
       justify-content: center;
     }
     .modal[hidden] { display: none; }
-    .modal-mask { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); }
+    .modal-mask { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.62); }
     .modal-box {
       position: relative;
       width: 100%;
       max-width: 560px;
       max-height: 88vh;
       overflow: auto;
-      padding: 16px;
-      background: var(--card);
-      border-radius: 16px 16px 0 0;
+      padding: 18px;
+      background: #0e1220;
+      border: 1px solid var(--line-strong);
+      border-bottom: 0;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -20px 50px -20px rgba(0, 0, 0, 0.9);
     }
     .modal-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
-    .modal-head h2 { margin: 0; font-size: 17px; }
+    .modal-head h2 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: 0.3px;
+      text-shadow: 0 0 18px rgba(61, 219, 217, 0.30);
+    }
     .icon-btn {
       border: 0;
       background: none;
@@ -321,10 +737,22 @@
       line-height: 1;
       color: var(--muted);
       cursor: pointer;
+      border-radius: 7px;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .icon-btn:hover { color: var(--text); background: var(--panel-hover); }
+
+    /* ---- 窄屏（手机竖屏）：7 列退回每天一行 ----
+       断点 820px：再窄下去 7 列就真的挤成一条线了。
+       为什么手机要纵向：PRD 场景 A「晚上躺床上看明天有什么」——
+       拇指横滑找今天太累，纵向滚动才符合"一眼扫完"。 */
+    @media (min-width: 820px) {
+      #week-list { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+      .item-time { width: 100%; }
     }
     @media (min-width: 600px) {
       .modal { align-items: center; }
-      .modal-box { border-radius: 16px; }
+      .modal-box { border-radius: 18px; border-bottom: 1px solid var(--line-strong); }
     }
   </style>
 </head>
@@ -349,9 +777,8 @@
 
       <section class="zone">
         <h2 class="zone-title">本周</h2>
-        <div id="week-list">
-          <p class="ph-note">7 天 + 课程与 DDL · 由 app.js 渲染</p>
-        </div>
+        <!-- Day 8：7 列卡片列。窄屏退回纵向，见样式区媒体查询 -->
+        <div id="week-list"></div>
       </section>
     </main>
 
@@ -481,6 +908,11 @@
 
   <!-- 数据层：全项目唯一碰 localStorage 的文件 -->
   <script src="store.js"></script>
+  <!-- Day 8：假数据 + 状态开关。
+       把 mock-data.js 里 DATA_SOURCE 改成 'off' 就切回真数据（store.js），
+       app.js 一个字不用改 —— 这就是「数据源可替换」的意思。
+       注意它必须排在 app.js 之前：app.js 启动时要用到 window.MockStore。 -->
+  <script src="mock-data.js"></script>
   <!-- 视图层：把 store.js 的数据翻译成页面。必须排在 store.js 之后 -->
   <script src="app.js"></script>
 
