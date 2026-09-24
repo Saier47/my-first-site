@@ -277,6 +277,7 @@
     /* Day 9：--faint 实测 2.67:1，教室号是要读的信息（"去哪上课"），换 --muted → 5.31:1 */
     .item-loc { flex: none; font-size: 11.5px; color: var(--muted); }
 
+
     /* DDL 卡片：换色 + 换竖条 + 加一个标签。
        三重区分（颜色 / 竖条 / 标签）不能只做颜色 —— PRD F1 要求
        「DDL 要能被一眼认出来」，色弱用户也得认得出。 */
@@ -965,5 +966,6 @@
   <!-- 视图层：把 store.js 的数据翻译成页面。必须排在 store.js 之后 -->
   <script src="app.js"></script>
 
+  <script src="audit-probe.js"></script>
 </body>
 </html>

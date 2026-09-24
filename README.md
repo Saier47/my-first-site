@@ -5,6 +5,8 @@
 
 > 本学期学习项目。第一版（MVP）完成于 Day 7 · 2026-09-22。
 > Day 8 · 2026-09-23：主视图换深色科技风、改成 7 列卡片列，加 mock 数据与四种页面状态。
+> Day 9 · 2026-09-24：按 6 条可量化标准做了一轮前端审查，修掉 7 处设计缺陷
+> （3 处文字对比度不达标 + 4 处触达尺寸不足），详见 `day9-audit.md`。
 
 ---
 
@@ -56,7 +58,14 @@ my-first-site/
 ├── PRD.md            Day 4 · 功能清单与验收标准
 ├── TECH_DESIGN.md    Day 5 · 技术路线与数据流
 ├── research.md       Day 3 · 同类产品研究 + 本期不做边界
-└── AGENTS.md         人机协作规则
+├── AGENTS.md         人机协作规则
+├── check-day8.js     Day 8 · 65 项自动验证（npm run check）
+├── audit-design.js   Day 9 · 静态分析：颜色/间距/字号档位
+├── audit-probe.js    Day 9 · 浏览器实测：对比度/溢出/触达尺寸
+├── audit-page.html   Day 9 · 审查用的页面（引用 audit-probe.js）
+├── run-audit.sh      Day 9 · 一键跑审查（bash run-audit.sh）
+├── day9-audit.md     Day 9 · 审查报告 + 修复记录
+└── docs/day9/        Day 9 · 修前 / 修后对照截图
 ```
 
 **一条铁律：`localStorage` 只出现在 `store.js` 里。**
