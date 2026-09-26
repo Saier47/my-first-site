@@ -64,6 +64,22 @@
     return { courses: courses, ddls: ddls };
   }
 
+  /* Day 10 修：读、写必须走同一个源。
+     ------------------------------------------------------------------
+     原来这里（loadData）判断了"用假数据还是真数据"，但写操作
+     （createCourse / createDdl / updateDdl / deleteDdl / deleteCourse）
+     一律直写 window.Store，从来不判断。
+
+     后果：开着假数据时，页面显示的是 MockStore 写死的假数据，
+     而你录进去的东西进了 store.js 的 localStorage。
+     下次 render() 又从 MockStore 读回那批写死的假数据 ——
+     于是"录了看不见、勾了不生效、删了没反应"，而且全程不报错。
+
+     现在统一成：读、写都问 dataSource()，就不会再各走各的。 */
+  function dataSource() {
+    return usingMock() ? MockStore : Store;
+  }
+
   /* ======================= 日期工具 ======================= */
 
   function startOfDay(d) {
@@ -453,8 +469,8 @@
     if (err) { showError('course', err); return; }   // 存不进去 + 有提示（A4 / A5）
 
     showError('course', null);
-    if (editing) await Store.updateCourse(editing.id, data);
-    else await Store.createCourse(data);
+    if (editing) await dataSource().updateCourse(editing.id, data);
+    else await dataSource().createCourse(data);
 
     closeModal();
     await render();
@@ -480,8 +496,8 @@
     }
 
     showError('ddl', null);
-    if (editing) await Store.updateDdl(editing.id, data);
-    else await Store.createDdl(data);
+    if (editing) await dataSource().updateDdl(editing.id, data);
+    else await dataSource().createDdl(data);
 
     closeModal();
     await render();
@@ -490,14 +506,16 @@
   /* ======================= 删除 / 勾选完成 ======================= */
 
   async function openEdit(kind, id) {
-    const all = kind === 'course' ? await Store.listCourses() : await Store.listDdls();
+    const S = dataSource();
+    const all = kind === 'course' ? await S.listCourses() : await S.listDdls();
     const rec = all.filter(function (x) { return x.id === id; })[0];
     if (rec) openModal(kind, rec);
   }
 
   async function removeRecord(kind, id) {
     const isCourse = kind === 'course';
-    const all = isCourse ? await Store.listCourses() : await Store.listDdls();
+    const S = dataSource();
+    const all = isCourse ? await S.listCourses() : await S.listDdls();
     const target = all.filter(function (x) { return x.id === id; })[0];
     if (!target) return;
 
@@ -505,13 +523,13 @@
     // A7：删除前先弹一次确认；点「取消」什么都不做
     if (!window.confirm('确定删除「' + name + '」吗？删除后不能恢复。')) return;
 
-    if (isCourse) await Store.deleteCourse(id);
-    else await Store.deleteDdl(id);
+    if (isCourse) await S.deleteCourse(id);
+    else await S.deleteDdl(id);
     await render();
   }
 
   async function toggleDone(id, checked) {
-    await Store.updateDdl(id, { done: checked });
+    await dataSource().updateDdl(id, { done: checked });
     await render();
   }
 

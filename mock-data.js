@@ -155,17 +155,135 @@
    * 这就是 TECH_DESIGN 2.3 说的「换存储不动调用方」。
    * ------------------------------------------------------------- */
 
+  /* ---------------------------------------------------------------
+   * Day 10 修：假数据也要「会记住」
+   *
+   * 原来的问题是 buildCourses() / buildDdls() 每次都重新生成一份新数组，
+   * 所以哪怕你录进去了，下一次读又变回写死的那几条 —— 看起来就像没录上。
+   *
+   * 现在改成：第一次读的时候把假数据抄进 _mem（内存副本），
+   * 之后所有读都读这个副本，写操作也是改这个副本。
+   * 效果就和真 store 一样：改了会留下，直到刷新页面（mock 不需要持久化）。
+   * ------------------------------------------------------------- */
+
+  var _mem = null;   // { courses: [...], ddls: [...] }，第一次读时惰性初始化
+
+  function mem() {
+    /* ⚠️ 判断口径必须和 app.js 的 mockSource() 一致 —— 读 MockStore.source，
+       而不是读闭包里的 DATA_SOURCE。
+       原因：DATA_SOURCE 只在加载时定一次，外部改不了；而测试（还有页面上的
+       重试按钮那类场景）是通过改 MockStore.source 来临时切状态的。
+       两边不同步的话，会出现"source 明明改成 normal 了，读出来还是空"。
+       另：只给 'normal' 做缓存，其他状态每次都现算（见 Day 10 的教训）。 */
+    var src = window.MockStore.source;
+    if (src !== 'normal') return { courses: [], ddls: [] };
+    if (!_mem) {
+      _mem = { courses: buildCourses(), ddls: buildDdls() };
+    }
+    return _mem;
+  }
+
+  // 生成一个自增 id，避免和假数据里写死的 id 撞车
+  var _seq = 0;
+  function nextId(prefix) {
+    _seq += 1;
+    return prefix + '_new' + _seq + '_' + Date.now();
+  }
+
+  // 和 store.js 里的时间戳口径保持一致
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
   window.MockStore = {
     source: DATA_SOURCE,
 
     listCourses: async function () {
       await delay(FAKE_DELAY_MS);
-      return buildCourses();
+      return mem().courses.slice();
     },
 
     listDdls: async function () {
       await delay(FAKE_DELAY_MS);
-      return buildDdls();
+      return mem().ddls.slice();
+    },
+
+    /* ---- 写操作（Day 10 新增）：签名与 store.js 完全一致 ---- */
+
+    createCourse: async function (input) {
+      await delay(FAKE_DELAY_MS);
+      var rec = {
+        id: nextId('c'),
+        name: input.name,
+        day_of_week: input.day_of_week,
+        start_time: input.start_time,
+        end_time: input.end_time,
+        location: input.location || '',
+        created_at: nowIso(),
+        updated_at: nowIso()
+      };
+      mem().courses.push(rec);
+      return rec;
+    },
+
+    updateCourse: async function (id, patch) {
+      await delay(FAKE_DELAY_MS);
+      var list = mem().courses;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) {
+          for (var k in patch) if (Object.prototype.hasOwnProperty.call(patch, k)) list[i][k] = patch[k];
+          list[i].updated_at = nowIso();
+          return list[i];
+        }
+      }
+      return null;
+    },
+
+    deleteCourse: async function (id) {
+      await delay(FAKE_DELAY_MS);
+      var list = mem().courses;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) { list.splice(i, 1); return true; }
+      }
+      return false;
+    },
+
+    createDdl: async function (input) {
+      await delay(FAKE_DELAY_MS);
+      var rec = {
+        id: nextId('d'),
+        title: input.title,
+        due_date: input.due_date,
+        due_time: input.due_time,
+        note: input.note || '',
+        done: false,
+        created_at: nowIso(),
+        updated_at: nowIso()
+      };
+      mem().ddls.push(rec);
+      return rec;
+    },
+
+    updateDdl: async function (id, patch) {
+      await delay(FAKE_DELAY_MS);
+      var list = mem().ddls;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) {
+          for (var k in patch) if (Object.prototype.hasOwnProperty.call(patch, k)) list[i][k] = patch[k];
+          list[i].updated_at = nowIso();
+          return list[i];
+        }
+      }
+      return null;
+    },
+
+    deleteDdl: async function (id) {
+      await delay(FAKE_DELAY_MS);
+      var list = mem().ddls;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === id) { list.splice(i, 1); return true; }
+      }
+      return false;
     }
   };
 })();
