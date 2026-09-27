@@ -419,6 +419,10 @@
 
     showError('course', null);
     showError('ddl', null);
+    // Day 11：每次打开都把按钮恢复成可点状态 ——
+    // 万一上次保存中途出了岔子，不能让人对着一个"保存中…"发呆
+    setFormBusy(el('form-course'), false);
+    setFormBusy(el('form-ddl'), false);
     fillForm(kind, record || null);
 
     const modal = el('modal');
@@ -432,6 +436,99 @@
     const modal = el('modal');
     if (modal) modal.hidden = true;
     editing = null;
+  }
+
+  /* ======================= 保存反馈（Day 11） ======================= */
+
+  /* 顶部提示条：保存成功后明确说一句「已保存」。
+     为什么需要它：弹层关闭只说明"界面变了"，不说明"你的事办成了"。
+     用户需要一句人话确认，否则会怀疑自己刚才是不是白填了。
+
+     连续两次保存时，后一次要重置计时器 —— 不然第一次的 2.4 秒倒计时
+     会把第二次的提示提前掐断（连续操作测试里会碰到）。 */
+  let toastTimer = null;
+  function showToast(text) {
+    const box = el('toast');
+    const txt = el('toast-text');
+    if (!box || !txt) return;
+    txt.textContent = text;
+    box.hidden = false;
+    // 强制一次重排：hidden 刚摘掉时直接加类，过渡可能不触发
+    if (box.offsetWidth === 0) { /* 读一下强制 reflow */ }
+    box.classList.add('is-on');
+
+    if (toastTimer) window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(function () {
+      box.classList.remove('is-on');
+      // 等淡出动画走完再真正隐藏，否则元素会"啪"一下消失
+      toastTimer = window.setTimeout(function () {
+        box.hidden = true;
+        box.classList.remove('is-on');
+        toastTimer = null;
+      }, 220);
+    }, 2400);
+  }
+
+  /* 把某个表单的提交按钮切成「保存中」或恢复。
+     这是防连点的硬机制 —— 没有它，用户在第 300ms 再点一次就会存两条。 */
+  function setFormBusy(form, busy) {
+    if (!form) return;
+    const btn = form.querySelector('button[type="submit"]');
+    if (!btn) return;
+    if (busy) {
+      if (!btn.getAttribute('data-idle-text')) {
+        btn.setAttribute('data-idle-text', btn.textContent);
+      }
+      btn.classList.add('is-busy');
+      btn.disabled = true;
+      btn.textContent = '保存中…';
+    } else {
+      btn.classList.remove('is-busy');
+      btn.disabled = false;
+      const idle = btn.getAttribute('data-idle-text');
+      if (idle) btn.textContent = idle;
+    }
+  }
+
+  /* 一次性收口：禁用 → 保存 → 提示 → 关闭 → 重渲染。
+     课程和 DDL 两个表单走同一套，避免两边行为跑偏。
+
+     ⚠️ 为什么除了 disabled 还要一个 saving 锁（Day 11 踩出来的）：
+     `btn.disabled = true` 只挡得住"人手点"，挡不住
+     `form.dispatchEvent(new Event('submit'))` 这种程序化提交，
+     也挡不住某些浏览器的回车提交路径。
+     实测：连发 10 次 submit（不等）→ 存进 10 条重复课程。
+     所以真正防连点要两层：
+       ① disabled  —— 给用户看的（点了没反应，且视觉上知道在忙）
+       ② saving 锁 —— 给代码用的（函数入口直接拦截，不看 DOM 状态）
+     这个锁在 finally 里释放，保证出错也能解锁。 */
+  let saving = false;
+  async function saveWithFeedback(form, kind, data, successText) {
+    if (saving) return false;          // 上一次还没完成，直接无视
+    saving = true;
+    setFormBusy(form, true);
+    try {
+      if (editing) {
+        if (kind === 'course') await dataSource().updateCourse(editing.id, data);
+        else await dataSource().updateDdl(editing.id, data);
+      } else {
+        if (kind === 'course') await dataSource().createCourse(data);
+        else await dataSource().createDdl(data);
+      }
+      closeModal();
+      await render();
+      showToast(successText);
+      return true;
+    } catch (e) {
+      // 存不进去时：恢复按钮 + 说清原因，别让用户对着一个"保存中…"干等
+      showError(kind, '保存失败：' + ((e && e.message) || '未知错误'));
+      return false;
+    } finally {
+      // 成功和失败都要恢复按钮 —— 原来只在 catch 里恢复，
+      // 成功的分支直接 return 了，按钮就永远卡在「保存中…」。
+      setFormBusy(form, false);
+      saving = false;
+    }
   }
 
   /* ======================= 校验（PRD F2 / F3） ======================= */
@@ -469,11 +566,11 @@
     if (err) { showError('course', err); return; }   // 存不进去 + 有提示（A4 / A5）
 
     showError('course', null);
-    if (editing) await dataSource().updateCourse(editing.id, data);
-    else await dataSource().createCourse(data);
-
-    closeModal();
-    await render();
+    // Day 11：禁用按钮 → 保存 → 顶部提示「已保存」→ 关闭弹层 → 重渲染
+    await saveWithFeedback(
+      el('form-course'), 'course', data,
+      editing ? '已更新：' + data.name : '已保存：' + data.name
+    );
   }
 
   async function submitDdl(event) {
@@ -496,11 +593,11 @@
     }
 
     showError('ddl', null);
-    if (editing) await dataSource().updateDdl(editing.id, data);
-    else await dataSource().createDdl(data);
-
-    closeModal();
-    await render();
+    // Day 11：与课程共用同一套保存反馈
+    await saveWithFeedback(
+      el('form-ddl'), 'ddl', data,
+      editing ? '已更新：' + data.title : '已保存：' + data.title
+    );
   }
 
   /* ======================= 删除 / 勾选完成 ======================= */
@@ -665,7 +762,10 @@
     removeRecord: removeRecord,
     toggleDone: toggleDone,
     openEdit: openEdit,
-    onClick: onClick
+    onClick: onClick,
+    // Day 11：暴露反馈相关的两个函数，方便验证脚本单独调用
+    showToast: showToast,
+    setFormBusy: setFormBusy
   };
 
   function boot() {
