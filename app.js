@@ -378,6 +378,60 @@
     }).join('');
   }
 
+  /* ======================= Day 12：清单页筛选 ======================= */
+
+  // 筛选词。空字符串 = 不筛（全部显示）
+  let filterQuery = '';
+
+  // 最近一次读到的数据。筛选用它，避免每敲一个字都重新读盘（读盘要 600ms）。
+  // 每次 render() 拿到新数据都会刷新它。
+  let currentData = null;
+
+  // 归一化：去空格 + 转小写。中英文都受得住（中文没有大小写，但英文有）
+  function normalize(s) {
+    return String(s == null ? '' : s).trim().toLowerCase();
+  }
+
+  // ⚠️ 这里是「派生视图」，不是「原地过滤」——
+  // 绝不写 all = all.filter(...)，否则清空搜索框后数据回不来。
+  function matchCourse(c, q) {
+    return normalize(c.name).indexOf(q) !== -1
+      || normalize(c.location).indexOf(q) !== -1;
+  }
+
+  function matchDdl(d, q) {
+    return normalize(d.title).indexOf(q) !== -1
+      || normalize(d.note).indexOf(q) !== -1;
+  }
+
+  // 无结果时那句话。必须带上用户搜的词 —— 证明系统读懂了输入，
+  // 也让用户一眼看出"是我搜的词不对"，而不是"页面坏了"。
+  function filterNoneHtml(q) {
+    return '<p class="filter-none">没找到和 <strong>' + esc(q) + '</strong> 有关的课程或 DDL。' +
+      '<br>换个关键词试试，或者点上面的「清空」看全部。</p>';
+  }
+
+  // 更新计数提示与「清空」按钮的可见性
+  function renderFilterMeta(shownCourses, shownDdls) {
+    const countBox = el('filter-count');
+    const clearBtn = el('filter-clear');
+    const q = normalize(filterQuery);
+
+    if (clearBtn) clearBtn.hidden = q === '';
+    if (!countBox) return;
+
+    if (q === '') {
+      countBox.textContent = '';
+      countBox.classList.remove('is-active');
+      return;
+    }
+    const total = shownCourses + shownDdls;
+    countBox.textContent = total === 0
+      ? '筛选：0 条结果'
+      : '筛选：' + total + ' 条结果（课程 ' + shownCourses + ' · DDL ' + shownDdls + '）';
+    countBox.classList.add('is-active');
+  }
+
   /* ======================= 弹层与表单 ======================= */
 
   let editing = null;     // 编辑中的记录 { kind, id }，新建时为 null
@@ -687,7 +741,53 @@
     } else if (action === 'retry') {
       // ④ 出错状态里那颗「重试一次」—— 重新走一遍 render，四种状态流程原样复用
       render().catch(function (err) { console.error('[app] 重试失败', err); });
+    } else if (action === 'clear-filter') {
+      applyFilter('');
     }
+  }
+
+  /* Day 12：筛选的应用入口。
+     ⚠️ 刻意不走 render() —— render() 会先铺骨架屏再去读数据（约 1800ms），
+     打字时每敲一下都闪一次骨架屏，体验是灾难。
+     筛选用的是"手上已经有的那份数据"，所以只重画清单，不重新读盘。 */
+  function applyFilter(next) {
+    filterQuery = next;
+
+    const input = el('filter-input');
+    if (input && input.value !== next) input.value = next;
+
+    const listArea = currentData;
+    if (!listArea) {
+      // 数据还没到手（仍在骨架屏阶段）——先记下筛选词，等数据回来自然会用上
+      return;
+    }
+
+    const q = normalize(filterQuery);
+    if (q === '') {
+      renderCourseList(listArea.courses);
+      renderDdlList(listArea.ddls, new Date());
+      renderFilterMeta(listArea.courses.length, listArea.ddls.length);
+      return;
+    }
+
+    const shownCourses = listArea.courses.filter(function (c) { return matchCourse(c, q); });
+    const shownDdls = listArea.ddls.filter(function (d) { return matchDdl(d, q); });
+
+    if (shownCourses.length === 0 && shownDdls.length === 0) {
+      const box1 = el('course-list');
+      const box2 = el('ddl-list');
+      if (box1) box1.innerHTML = filterNoneHtml(filterQuery);
+      if (box2) box2.innerHTML = '';
+    } else {
+      renderCourseList(shownCourses);
+      renderDdlList(shownDdls, new Date());
+    }
+    renderFilterMeta(shownCourses.length, shownDdls.length);
+  }
+
+  function onFilterInput(event) {
+    const box = event.target;
+    if (box && box.id === 'filter-input') applyFilter(box.value);
   }
 
   function onChange(event) {
@@ -700,6 +800,8 @@
   function bindEvents() {
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
+    // input 事件（不是 change）—— 要边打字边筛，change 要等失焦才触发
+    document.addEventListener('input', onFilterInput);
 
     const fc = el('form-course'); if (fc) fc.addEventListener('submit', submitCourse);
     const fd = el('form-ddl');    if (fd) fd.addEventListener('submit', submitDdl);
@@ -717,8 +819,10 @@
     if (usingMock() && mockSource() === 'error') {
       renderRange(now);
       renderState(errorHtml('（这是 Day 8 的模拟错误，用来验证错误状态长什么样。）'));
+      currentData = null;   // 数据不可用，别让筛选拿到上一轮的旧数据
       renderCourseList([]);
       renderDdlList([], now);
+      renderFilterMeta(0, 0);
       return;
     }
 
@@ -733,8 +837,10 @@
       // 拿数据失败 —— 这是 ④ 出错状态在真实场景里被触发的地方
       console.error('[app] 读取数据失败', err);
       renderState(errorHtml(err && err.message ? err.message : ''));
+      currentData = null;
       renderCourseList([]);
       renderDdlList([], now);
+      renderFilterMeta(0, 0);
       return;
     }
 
@@ -747,8 +853,12 @@
       return isOverdue(d, now);
     }).sort(byDeadline));
     renderWeek(courses, ddls, now);
-    renderCourseList(courses);
-    renderDdlList(ddls, now);
+
+    // Day 12：清单页带上当前筛选条件重画。
+    // 这里刻意复用 applyFilter（而不是再写一遍筛选），
+    // 免得"首次渲染"和"打字时筛选"两条路径日后走岔。
+    currentData = { courses: courses, ddls: ddls };
+    applyFilter(filterQuery);
   }
 
   // 暴露出去：保存/删除之后要重新渲染；也方便单独测
@@ -765,7 +875,10 @@
     onClick: onClick,
     // Day 11：暴露反馈相关的两个函数，方便验证脚本单独调用
     showToast: showToast,
-    setFormBusy: setFormBusy
+    setFormBusy: setFormBusy,
+    // Day 12：筛选入口。Skill 检查时要能直接驱动筛选，不用去模拟键盘输入。
+    applyFilter: applyFilter,
+    getFilterQuery: function () { return filterQuery; }
   };
 
   function boot() {

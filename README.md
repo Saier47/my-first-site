@@ -11,6 +11,8 @@
 > 全部"操作成功但结果消失"。详见 `day10-fix.md`。
 > Day 11 · 2026-09-27：给「保存」加了**四层反馈**（按压态 → 过程态 → 禁用 → 结果态提示条），
 > 顺带修掉"成功时按钮永远卡在保存中"和"连点 10 次存 10 条"两个真 bug。详见 `day11-feedback.md`。
+> Day 12 · 2026-09-28：清单页加了**筛选**，并把"筛选该检查什么"写成了项目内的 Skill
+> （`.workbuddy/skills/filter-interaction-check/`），真实调用一次验过三种情况。详见 `day12-skill-run.md`。
 
 ---
 
@@ -72,9 +74,13 @@ my-first-site/
 ├── day10-fix.md      Day 10 · 读写不同源 bug 的定位与修复记录
 ├── check-day11.js    Day 11 · 交互反馈自测（7 场景 30 项断言）
 ├── day11-feedback.md Day 11 · 保存反馈的实现与「没生效 vs 还没生效」教训
+├── day12-skill-run.md Day 12 · Skill 调用记录（三种筛选情况逐项验过）
+├── .workbuddy/skills/filter-interaction-check/SKILL.md
+│                     Day 12 · 项目内 Skill：筛选交互完整性检查
 ├── docs/day9/        Day 9 · 修前 / 修后对照截图
 ├── docs/day10/       Day 10 · 修前 / 修后对照截图
-└── docs/day11/       Day 11 · 点击前 / 保存中 / 保存成功 三态截图
+├── docs/day11/       Day 11 · 点击前 / 保存中 / 保存成功 三态截图
+└── docs/day12/       Day 12 · 筛选三情况截图 + 项目内 SKILL.md 截图
 ```
 
 **一条铁律：`localStorage` 只出现在 `store.js` 里。**

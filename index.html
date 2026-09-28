@@ -328,6 +328,91 @@
     .over-title { flex: 1; color: var(--text); }
     .over-note { width: 100%; font-size: 12px; color: var(--muted); }
 
+    /* ---- Day 12：清单页的筛选框 ----
+       要能和「这一周」深色科技风对上，同时把"可输入"这件事说清楚。 */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 6px 6px 6px 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    /* 聚焦时给一圈明显的环 —— 键盘用户靠它知道"现在在这儿" */
+    .filter-bar:focus-within {
+      border-color: var(--accent-line);
+      box-shadow: 0 0 0 3px rgba(61, 219, 217, 0.14);
+    }
+    .filter-label {
+      flex: 0 0 auto;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    .filter-input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 2px;
+      background: transparent;
+      border: 0;
+      outline: none;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+    }
+    .filter-input::placeholder { color: var(--muted); opacity: 0.75; }
+    /* 去掉浏览器给 type=search 自带的那个叉（我们用自己那个，位置统一） */
+    .filter-input::-webkit-search-cancel-button { display: none; }
+    .filter-clear {
+      flex: 0 0 auto;
+      min-height: 32px;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .filter-clear:hover {
+      color: var(--text);
+      border-color: var(--accent-line);
+      background: rgba(61, 219, 217, 0.08);
+    }
+    .filter-clear:active { transform: translateY(1px); }
+    @media (prefers-reduced-motion: reduce) {
+      .filter-clear, .filter-clear:active { transition: none; transform: none; }
+      .filter-bar { transition: none; }
+    }
+    /* 结果计数：平时只占位不喧哗，有筛选时才是强调色 */
+    .filter-count {
+      margin: 0 0 14px;
+      min-height: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .filter-count.is-active { color: var(--accent); }
+
+    /* 无结果时的那句话 —— 必须和"列表本身为空"区分开，
+       否则用户分不清「我没录东西」和「我搜错了」 */
+    .filter-none {
+      margin: 0 0 12px;
+      padding: 16px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .filter-none strong { color: var(--text); }
+
     /* ---- 清单页：列表条目 ---- */
     .zone { margin-bottom: 20px; }
     .zone-title {
@@ -922,6 +1007,19 @@
          说明：PRD 要求「只有 2 个页面、2 个导航入口」，而 F2 要课程列表、
          F3/B4 要 DDL 也能在列表里找到 —— 只能两个列表同页。 -->
     <main id="view-courses" class="view" hidden>
+      <!-- Day 12：清单页的筛选框。
+           只筛清单页（不筛一周视图）—— 一周视图的价值是"一眼看全这一周"，
+           筛掉反而破坏了它存在的理由。 -->
+      <div class="filter-bar">
+        <label class="filter-label" for="filter-input">筛选</label>
+        <input type="search" id="filter-input" class="filter-input"
+               placeholder="搜课程名或 DDL 标题…" autocomplete="off"
+               aria-describedby="filter-count">
+        <button type="button" class="filter-clear" id="filter-clear"
+                data-action="clear-filter" hidden>清空</button>
+      </div>
+      <p class="filter-count" id="filter-count" role="status" aria-live="polite"></p>
+
       <section class="zone">
         <div class="zone-head">
           <h2 class="zone-title">课程</h2>
