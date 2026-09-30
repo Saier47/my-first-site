@@ -17,9 +17,13 @@ const mockJs = fs.readFileSync(path.join(DIR, 'mock-data.js'), 'utf8');
 const appJs = fs.readFileSync(path.join(DIR, 'app.js'), 'utf8');
 
 function makeHtml() {
+  // ⚠️ 2026-09-30：产品默认已改成"真数据"（DATA_SOURCE='off'），
+  // 测试要的是可复现的固定输入，所以这里统一覆盖成假数据。
+  // （URL 上带 ?src=empty / ?src=error 的用例，会再由 boot 里的地址通道覆盖一次。）
+  const mock = mockJs.replace(/var DATA_SOURCE = '[^']*';/, "var DATA_SOURCE = 'normal';");
   return rawHtml
     .replace('<script src="store.js"></script>', '<script>' + storeJs + '</script>')
-    .replace('<script src="mock-data.js"></script>', '<script>' + mockJs + '</script>')
+    .replace('<script src="mock-data.js"></script>', '<script>' + mock + '</script>')
     .replace('<script src="app.js"></script>', '<script>' + appJs + '</script>');
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -1270,9 +1270,12 @@
 
   <!-- 数据层：全项目唯一碰 localStorage 的文件 -->
   <script src="store.js"></script>
-  <!-- Day 8：假数据 + 状态开关。
-       把 mock-data.js 里 DATA_SOURCE 改成 'off' 就切回真数据（store.js），
-       app.js 一个字不用改 —— 这就是「数据源可替换」的意思。
+  <!-- 假数据 + 状态开关。**默认是关的** —— 不加参数就走 store.js 读本机真实数据。
+       要演示 / 截图才用它，加地址参数即可（不用改源码）：
+         ?src=normal 有数据 · ?src=empty 空状态 · ?src=error 出错状态
+       为什么默认关掉：开着的时候用户录的东西只进内存、一刷新就没，
+       而且保存时照样弹「已保存」—— 一个学生打开、录完、关掉，课全没了。
+       见 usability-checkup.md。
        注意它必须排在 app.js 之前：app.js 启动时要用到 window.MockStore。 -->
   <script src="mock-data.js"></script>
   <!-- 视图层：把 store.js 的数据翻译成页面。必须排在 store.js 之后 -->

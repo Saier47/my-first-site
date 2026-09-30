@@ -39,11 +39,11 @@ let mockJs = fs.readFileSync(path.join(DIR, 'mock-data.js'), 'utf8');
 const appJs = fs.readFileSync(path.join(DIR, 'app.js'), 'utf8');
 
 function makeHtml(sourceOverride) {
-  let mock = mockJs;
-  if (sourceOverride) {
-    // 覆盖 mock-data.js 里的 DATA_SOURCE 开关
-    mock = mock.replace(/var DATA_SOURCE = '[^']*';/, "var DATA_SOURCE = '" + sourceOverride + "';");
-  }
+  // ⚠️ 2026-09-30：产品默认已改成"真数据"（DATA_SOURCE='off'，见 usability-checkup.md），
+  // 但测试要的是一份**可复现的固定输入**，所以这里统一覆盖成假数据。
+  // 想测真数据的用例，显式传 'off'。
+  const src = sourceOverride || 'normal';
+  const mock = mockJs.replace(/var DATA_SOURCE = '[^']*';/, "var DATA_SOURCE = '" + src + "';");
   return rawHtml
     .replace('<script src="store.js"></script>', '<script>' + storeJs + '</script>')
     .replace('<script src="mock-data.js"></script>', '<script>' + mock + '</script>')
