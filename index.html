@@ -328,6 +328,90 @@
     .over-title { flex: 1; color: var(--text); }
     .over-note { width: 100%; font-size: 12px; color: var(--muted); }
 
+    /* ---- Day 13：面包屑（二级视图「回去的路」） ----
+       二级视图没有底部导航入口，必须给一条明确的回头路；
+       否则用户只能去按浏览器的后退键 —— 那是"浏览器的知识"，不该指望用户会。 */
+    .crumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      font-size: 12px;
+    }
+    .crumb-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 11px;
+      color: var(--accent);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .crumb-link:hover {
+      border-color: var(--accent-line);
+      background: rgba(61, 219, 217, 0.08);
+    }
+    .crumb-link:active { transform: translateY(1px); }
+    .crumb-sep { color: var(--muted); }
+    .crumb-now { color: var(--text); }
+    @media (prefers-reduced-motion: reduce) {
+      .crumb-link, .crumb-link:active { transition: none; transform: none; }
+    }
+
+    /* ---- Day 13：一周视图里「今天」那一列的列头可点（下钻到「今天」视图） ----
+       做成整块链接而不是加个小按钮：点击区域 = 整个列头（约 150px 宽），
+       比一个小圆点好点太多 —— Day 9 学过的触达尺寸。 */
+    .day-head-link {
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s ease;
+    }
+    .day-head-link:hover { border-bottom-color: var(--accent-line); }
+    .day-head-link:hover .day-name { color: var(--accent); }
+    .day-head-link:active { transform: translateY(1px); }
+    .day-go {
+      margin-left: auto;
+      color: var(--accent);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .day-head-link, .day-head-link:active { transition: none; transform: none; }
+    }
+
+    /* ---- Day 13：今天视图的头部 ----
+       先给结论（几节课、几个 DDL），再往下才是一行行细节。 */
+    .today-head {
+      margin: 0 0 18px;
+      padding: 16px 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+    }
+    .today-date {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .today-sum {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 空状态里那颗按钮其实是个 <a>（点了走路由），去掉链接的默认样式 */
+    .btn-as-link {
+      display: inline-block;
+      margin-top: 8px;
+      text-decoration: none;
+    }
+
     /* ---- Day 12：清单页的筛选框 ----
        要能和「这一周」深色科技风对上，同时把"可输入"这件事说清楚。 */
     .filter-bar {
@@ -767,6 +851,11 @@
        光扫动的动画就是「加载中」和「加载完但没数据」的视觉区别所在 ——
        静止的灰块会被误认成内容，动起来才知道是在忙。 */
     .skeleton-wrap {
+      /* Day 13 修：它是 #week-list（一个 7 列网格）的直接子元素，
+         不写这行就只占第 1 格 —— 整块骨架会挤在左边 1/7 宽的一条里。
+         （.state-box 和 .empty-guide 都有这行，只有它漏了，
+           所以"加载中"一直是挤在左边的一小条，没人发现。） */
+      grid-column: 1 / -1;
       display: grid;
       grid-template-columns: 1fr;
       gap: 10px;
@@ -790,6 +879,11 @@
     .sk-head { height: 14px; width: 60%; margin-bottom: 10px; }
     .sk-card { height: 42px; margin-bottom: 7px; }
     .sk-short { width: 70%; margin-bottom: 0; }
+
+    /* Day 13：清单页 / 今天视图的骨架 —— 纵向几行，和它们的列表布局对上。
+       复用 .sk-bar 的渐变与动画（连 reduced-motion 的豁免也一起继承），只改尺寸。 */
+    .skeleton-rows { display: grid; gap: 8px; }
+    .sk-row { height: 48px; border-radius: 10px; }
     @keyframes sk-shimmer {
       0% { background-position: 100% 50%; }
       100% { background-position: 0 50%; }
@@ -969,6 +1063,12 @@
        拇指横滑找今天太累，纵向滚动才符合"一眼扫完"。 */
     @media (min-width: 820px) {
       #week-list { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+      /* Day 13 修：骨架屏也必须跟着变 7 列。
+         不修的话，"加载中"是纵向 1 列、"加载完"突然变成 7 列 ——
+         同一屏的两种样子对不上，切换时整页像跳了一下。
+         （这个 bug 从 Day 8 就在。一直没被发现，是因为测试只数了骨架格的**数量**=7，
+           数量对、布局错 —— 这正是"jsdom 不做布局"测不出来的那类问题。） */
+      .skeleton-wrap { grid-template-columns: repeat(7, minmax(0, 1fr)); }
       .item-time { width: 100%; }
     }
     @media (min-width: 600px) {
@@ -1007,34 +1107,55 @@
          说明：PRD 要求「只有 2 个页面、2 个导航入口」，而 F2 要课程列表、
          F3/B4 要 DDL 也能在列表里找到 —— 只能两个列表同页。 -->
     <main id="view-courses" class="view" hidden>
-      <!-- Day 12：清单页的筛选框。
-           只筛清单页（不筛一周视图）—— 一周视图的价值是"一眼看全这一周"，
-           筛掉反而破坏了它存在的理由。 -->
-      <div class="filter-bar">
-        <label class="filter-label" for="filter-input">筛选</label>
-        <input type="search" id="filter-input" class="filter-input"
-               placeholder="搜课程名或 DDL 标题…" autocomplete="off"
-               aria-describedby="filter-count">
-        <button type="button" class="filter-clear" id="filter-clear"
-                data-action="clear-filter" hidden>清空</button>
+      <!-- Day 13：清单页的「状态位」—— 加载中 / 出错写这里，和正常内容整块互换。
+           为什么要分开：否则会出现"筛选框还在、列表却是骨架屏"这种半吊子状态，
+           用户不知道该等还是该筛。 -->
+      <div id="courses-state" hidden></div>
+
+      <div id="courses-normal">
+        <!-- Day 12：清单页的筛选框。
+             只筛清单页（不筛一周视图）—— 一周视图的价值是"一眼看全这一周"，
+             筛掉反而破坏了它存在的理由。 -->
+        <div class="filter-bar">
+          <label class="filter-label" for="filter-input">筛选</label>
+          <input type="search" id="filter-input" class="filter-input"
+                 placeholder="搜课程名或 DDL 标题…" autocomplete="off"
+                 aria-describedby="filter-count">
+          <button type="button" class="filter-clear" id="filter-clear"
+                  data-action="clear-filter" hidden>清空</button>
+        </div>
+        <p class="filter-count" id="filter-count" role="status" aria-live="polite"></p>
+
+        <section class="zone">
+          <div class="zone-head">
+            <h2 class="zone-title">课程</h2>
+            <button type="button" class="btn-mini" data-action="add" data-kind="course">+ 课程</button>
+          </div>
+          <div id="course-list"></div>
+        </section>
+
+        <section class="zone">
+          <div class="zone-head">
+            <h2 class="zone-title">DDL</h2>
+            <button type="button" class="btn-mini" data-action="add" data-kind="ddl">+ DDL</button>
+          </div>
+          <div id="ddl-list"></div>
+        </section>
       </div>
-      <p class="filter-count" id="filter-count" role="status" aria-live="polite"></p>
+    </main>
 
-      <section class="zone">
-        <div class="zone-head">
-          <h2 class="zone-title">课程</h2>
-          <button type="button" class="btn-mini" data-action="add" data-kind="course">+ 课程</button>
-        </div>
-        <div id="course-list"></div>
-      </section>
-
-      <section class="zone">
-        <div class="zone-head">
-          <h2 class="zone-title">DDL</h2>
-          <button type="button" class="btn-mini" data-action="add" data-kind="ddl">+ DDL</button>
-        </div>
-        <div id="ddl-list"></div>
-      </section>
+    <!-- 视图三：今天视图（Day 13 新增 · **二级**视图）
+         入口在一周视图的「今天」那一列 —— 底部导航仍然是 2 个入口，
+         守住 PRD 第 2.2 节第 2 条「不许有第 3 个」那条防线。
+         面包屑是二级视图的"回去的路"：href 直接写 #/week，
+         浏览器原生就会改地址、触发路由，不用额外绑事件。 -->
+    <main id="view-today" class="view" hidden>
+      <nav class="crumb" aria-label="面包屑">
+        <a class="crumb-link" href="#/week">&#8592; 这一周</a>
+        <span class="crumb-sep" aria-hidden="true">/</span>
+        <span class="crumb-now" aria-current="page">今天</span>
+      </nav>
+      <div id="today-body"></div>
     </main>
 
   </div>

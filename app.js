@@ -113,6 +113,14 @@
     return (d.getMonth() + 1) + '/' + d.getDate();
   }
 
+  /* Day 13：今天是一周里的第几天 —— 1=周一 … 7=周日。
+     和课程表 day_of_week 用同一个口径，否则"今天有哪节课"会错一天。
+     （getDay() 是 0=周日…6=周六，所以周日要单独掰成 7） */
+  function weekdayOf(d) {
+    const g = d.getDay();
+    return g === 0 ? 7 : g;
+  }
+
   // 把 due_date + due_time 拼成一个完整的截止时刻（PRD F1 写死的口径）
   function deadlineOf(ddl) {
     return new Date(ddl.due_date + 'T' + (ddl.due_time || '00:00') + ':00');
@@ -159,6 +167,17 @@
     return html + '</div>';
   }
 
+  /* 清单页 / 今天视图的骨架形态：纵向几行，和它们实际的"一条一条"对上。
+     形态要跟着布局走 —— 把一个 7 列网格的骨架塞进清单页会很怪。
+     （复用 .sk-bar 的渐变与动画，只换尺寸） */
+  function skeletonRowsHtml(rows) {
+    let html = '<div class="skeleton-rows">';
+    for (let i = 0; i < rows; i++) {
+      html += '<div class="sk-bar sk-row"></div>';
+    }
+    return html + '</div>';
+  }
+
   /* ④ 出错：说清楚"出了什么事" + 给一条出路（重试）。
      只写一句"加载失败"是不合格的 —— 用户不知道该干嘛。 */
   function errorHtml(message) {
@@ -169,11 +188,48 @@
       '</div>';
   }
 
-  function renderState(html) {
-    const box = el('week-list');
-    if (box) box.innerHTML = html;
+  /* ---- 四种状态的渲染（Day 13 重写）----
+
+     关键认识：「加载中」和「出错」是**全视图**的状态 —— 数据还没到手时，
+     切到哪个视图看到的都该是同一个"在等"的样子，
+     而不是"一周视图在转圈、清单页一片空白"。
+     （「有数据」和「空」由各视图自己的渲染函数负责，不在这里。） */
+
+  // 清单页：状态位和正常内容整块互换，避免"筛选框还在、列表却是骨架"的中间态
+  function setCoursesState(html) {
+    const stateBox = el('courses-state');
+    const normal = el('courses-normal');
+    if (stateBox) {
+      stateBox.innerHTML = html || '';
+      stateBox.hidden = !html;
+    }
+    if (normal) normal.hidden = !!html;
+  }
+
+  function renderLoadingState() {
+    const week = el('week-list');
+    if (week) week.innerHTML = skeletonHtml();          // 一周视图是 7 列
     const zone = el('overdue-zone');
-    if (zone) zone.hidden = true;        // 状态页里不显示过期区，避免一半有内容一半是骨架
+    if (zone) zone.hidden = true;                        // 别一半有内容一半是骨架
+
+    setCoursesState(skeletonRowsHtml(4));                // 清单页是纵向几行
+
+    const today = el('today-body');
+    if (today) today.innerHTML = skeletonRowsHtml(3);
+  }
+
+  function renderErrorState(message) {
+    const html = errorHtml(message);
+
+    const week = el('week-list');
+    if (week) week.innerHTML = html;
+    const zone = el('overdue-zone');
+    if (zone) zone.hidden = true;
+
+    setCoursesState(html);
+
+    const today = el('today-body');
+    if (today) today.innerHTML = html;
   }
 
   /* ======================= 渲染：本周范围 ======================= */
@@ -187,6 +243,17 @@
 
   /* ======================= 渲染：过期区域（置顶） ======================= */
 
+  // 逾期条目的 HTML —— 一周视图和今天视图共用，免得两处各写一遍、日后走岔
+  function overdueHtml(list) {
+    return list.map(function (d) {
+      return '<div class="over-item">' +
+        '<span class="over-when">' + esc(d.due_date + ' ' + d.due_time) + '</span>' +
+        '<span class="over-title">' + esc(d.title) + '</span>' +
+        (d.note ? '<span class="over-note">' + esc(d.note) + '</span>' : '') +
+        '</div>';
+    }).join('');
+  }
+
   function renderOverdue(overdue) {
     const zone = el('overdue-zone');
     const box = el('overdue-list');
@@ -199,13 +266,7 @@
     }
 
     zone.hidden = false;
-    box.innerHTML = overdue.map(function (d) {
-      return '<div class="over-item">' +
-        '<span class="over-when">' + esc(d.due_date + ' ' + d.due_time) + '</span>' +
-        '<span class="over-title">' + esc(d.title) + '</span>' +
-        (d.note ? '<span class="over-note">' + esc(d.note) + '</span>' : '') +
-        '</div>';
-    }).join('');
+    box.innerHTML = overdueHtml(overdue);
   }
 
   /* ======================= 渲染：一天里的一条 ======================= */
@@ -278,11 +339,20 @@
       });
 
       html += '<div class="day' + (isToday ? ' is-today' : '') + '">';
-      html += '<div class="day-head">' +
-                '<span class="day-name">' + DAY_NAMES[i] + '</span>' +
-                (isToday ? '<span class="day-tag">今天</span>' : '') +
-                '<span class="day-date">' + md(day) + '</span>' +
-              '</div>';
+
+      // Day 13：「今天」那一列的列头**整块可点** —— 点它就下钻到「今天」视图（二级）。
+      // 用 <a href="#/today">：浏览器自己会改地址、触发路由，不用额外绑事件。
+      // 整块做成链接（而不是加一个小按钮）是为了点击区域够大 —— Day 9 学过的触达尺寸。
+      const headInner =
+        '<span class="day-name">' + DAY_NAMES[i] + '</span>' +
+        (isToday ? '<span class="day-tag">今天</span>' : '') +
+        '<span class="day-date">' + md(day) + '</span>' +
+        (isToday ? '<span class="day-go" aria-hidden="true">&#8250;</span>' : '');
+
+      html += isToday
+        ? '<a class="day-head day-head-link" href="#/today" aria-label="查看今天这一天的安排">' +
+            headInner + '</a>'
+        : '<div class="day-head">' + headInner + '</div>';
 
       if (items.length === 0) {
         html += '<p class="day-empty">没有安排</p>';
@@ -293,6 +363,85 @@
       }
 
       html += '</div>';
+    }
+
+    box.innerHTML = html;
+  }
+
+  /* ======================= 渲染：今天视图（Day 13 · 二级） =======================
+
+     今天是「聚焦」的一屏：只回答一个问题 —— 今天我要面对什么？
+     内容全部由现有数据派生（课程按 day_of_week 匹配今天、DDL 按 due_date 匹配今天），
+     **不新增任何数据**。 */
+
+  function renderToday(courses, ddls, now) {
+    const box = el('today-body');
+    if (!box) return;
+
+    const todayKey = ymd(startOfDay(now));
+    const dow = weekdayOf(now);
+
+    const todaysCourses = courses.filter(function (c) {
+      return Number(c.day_of_week) === dow;      // 课程每周重复，只看"今天是周几"
+    }).sort(function (a, b) {
+      return String(a.start_time).localeCompare(String(b.start_time));
+    });
+
+    const dueToday = ddls.filter(function (d) {
+      return !d.done && d.due_date === todayKey;
+    }).sort(byDeadline);
+
+    const overdue = ddls.filter(function (d) {
+      return isOverdue(d, now);
+    }).sort(byDeadline);
+
+    const todayCount = todaysCourses.length + dueToday.length;
+
+    // 头部：先给结论（今天几节课几个 DDL），再给细节
+    let html = '<div class="today-head">' +
+      '<p class="today-date">' + DAY_NAMES[dow - 1] + ' · ' + md(now) + '</p>' +
+      '<p class="today-sum">' + (
+        todayCount === 0
+          ? '今天没有课，也没有到期的 DDL'
+          : '今天 ' + todaysCourses.length + ' 节课 · ' + dueToday.length + ' 个 DDL 到期'
+      ) + '</p>' +
+      '</div>';
+
+    // ③ 空状态：今天真的一件都没有。（边界：这和"加载中"是两回事，别混）
+    if (todayCount === 0 && overdue.length === 0) {
+      html += '<div class="empty-guide">' +
+        '<p class="empty-title">今天很干净</p>' +
+        '<p class="empty-sub">没有课，也没有到期的 DDL。<br>要不要提前看看这一周还剩什么？</p>' +
+        '<a class="btn-primary btn-as-link" href="#/week">看看这一周</a>' +
+        '</div>';
+      box.innerHTML = html;
+      return;
+    }
+
+    html += '<section class="zone">' +
+      '<h2 class="zone-title">今天的课</h2>' +
+      (todaysCourses.length === 0
+        ? '<p class="day-empty">今天没课</p>'
+        : '<ul class="items">' + todaysCourses.map(function (c) {
+            return renderItem({ time: c.start_time, kind: 'course', data: c });
+          }).join('') + '</ul>') +
+      '</section>';
+
+    html += '<section class="zone">' +
+      '<h2 class="zone-title">今天到期</h2>' +
+      (dueToday.length === 0
+        ? '<p class="day-empty">今天没有 DDL 到期</p>'
+        : '<ul class="items">' + dueToday.map(function (d) {
+            return renderItem({ time: d.due_time, kind: 'ddl', data: d });
+          }).join('') + '</ul>') +
+      '</section>';
+
+    // 欠账：过期还没打勾的。放最后 —— 它是"提醒"，不是"今天的事"。
+    if (overdue.length > 0) {
+      html += '<section class="zone">' +
+        '<h2 class="zone-title">还没做的（已经过期）</h2>' +
+        overdueHtml(overdue) +
+        '</section>';
     }
 
     box.innerHTML = html;
@@ -684,31 +833,127 @@
     await render();
   }
 
+  /* ======================= Day 13：hash 路由 =======================
+
+     为什么用 hash（地址里 # 后面那一段），而不是 History API：
+       1. 改 hash **不会让浏览器重新请求页面** —— 纯前端就能用，不需要服务器配合
+       2. 双击打开的 file:// 也照样可用（History API 在 file:// 下会被限制）
+       3. hash 会被记进历史 —— 所以后退键能用、刷新能回到原处、链接能直接分享
+     "够用就好"：不引任何路由库，就下面这几个函数。
+
+     层级：一级 = week / courses（底部导航）；二级 = today（从一周视图点进去）。
+     today 的 parent 设成 week —— 这样停在今天视图时，底部「一周视图」仍保持高亮，
+     用户能看出"我还在这个分支里"，而不是两个 tab 都不亮。 */
+
+  const ROUTES = {
+    week:    { el: 'view-week' },
+    courses: { el: 'view-courses' },
+    today:   { el: 'view-today', parent: 'week' }
+  };
+
+  const DEFAULT_VIEW = 'week';
+
+  // '#/courses?q=高数' → { view: 'courses', params: { q: '高数' } }
+  // 地址不认识时一律回默认视图 —— 手输错地址不该变成白屏。
+  function parseHash() {
+    const raw = String(location.hash || '').replace(/^#\/?/, '');
+    const qi = raw.indexOf('?');
+    const path = qi === -1 ? raw : raw.slice(0, qi);
+    const qs = qi === -1 ? '' : raw.slice(qi + 1);
+
+    const known = Object.prototype.hasOwnProperty.call(ROUTES, path);
+    const params = {};
+    if (qs) {
+      qs.split('&').forEach(function (pair) {
+        if (!pair) return;
+        const eq = pair.indexOf('=');
+        const k = eq === -1 ? pair : pair.slice(0, eq);
+        const v = eq === -1 ? '' : pair.slice(eq + 1);
+        try { params[decodeURIComponent(k)] = decodeURIComponent(v); }
+        catch (e) { params[k] = v; }
+      });
+    }
+    return { view: known ? path : DEFAULT_VIEW, params: params };
+  }
+
+  function hashFor(view, params) {
+    let h = '#/' + view;
+    const parts = [];
+    if (params) {
+      Object.keys(params).forEach(function (k) {
+        const v = params[k];
+        if (v === '' || v == null) return;   // 空值不进地址，地址才干净
+        parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+      });
+    }
+    return parts.length ? h + '?' + parts.join('&') : h;
+  }
+
+  // 正常跳转：写进历史（所以后退键能一路退回来）
+  function navigate(view, params) {
+    const next = hashFor(view, params);
+    if (location.hash === next) { applyRoute(); return; }  // 地址没变也要重画一次
+    location.hash = next;                                  // 触发 hashchange（后退键靠它）
+    // 立刻切一次，不等 hashchange —— 后者在 jsdom 里时序不可靠，
+    // 而且用户点一下却要等一个事件循环才看到反应，没必要。
+    // applyRoute 是幂等的，hashchange 再触发一次也无害。
+    applyRoute();
+  }
+
+  // 静默同步：替换当前历史项、不新增。
+  // 用在"打字筛选"上 —— 否则每敲一个字都进一次历史，后退键要按几十下才能退出去。
+  function syncHash(view, params) {
+    const next = hashFor(view, params);
+    if (location.hash === next) return;
+    try {
+      history.replaceState(null, '', next);
+    } catch (e) {
+      // 个别浏览器在 file:// 下不让 replaceState —— 那就干脆不写地址，不影响功能
+    }
+  }
+
+  // 读地址 → 把界面切过去。**这是唯一真正切换视图的地方。**
+  function applyRoute() {
+    const r = parseHash();
+    switchView(r.view);
+
+    // 地址里带了筛选词（#/courses?q=高数）→ 一并应用，让筛选也能被分享和后退
+    if (r.view === 'courses' && typeof r.params.q === 'string') {
+      applyFilter(r.params.q);
+    }
+  }
+
   /* ======================= 视图切换 ======================= */
 
   function switchView(name) {
+    if (!Object.prototype.hasOwnProperty.call(ROUTES, name)) name = DEFAULT_VIEW;
     currentView = name;
 
-    const week = el('view-week'), list = el('view-courses');
-    if (week) week.hidden = name !== 'week';
-    if (list) list.hidden = name !== 'courses';
+    // 按 ROUTES 统一隐藏/显示，加视图时只要在 ROUTES 里补一行
+    Object.keys(ROUTES).forEach(function (key) {
+      const node = el(ROUTES[key].el);
+      if (node) node.hidden = key !== name;
+    });
 
+    // 底部导航高亮：二级视图高亮它的父级（今天是 week 的分支）
+    const lit = ROUTES[name].parent || name;
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) {
-      const on = t.getAttribute('data-view') === name;
+      const on = t.getAttribute('data-view') === lit;
       if (t.classList) t.classList.toggle('is-active', on);
       else t.className = on ? 'tab is-active' : 'tab';
     });
 
-    // 「+ 添加」跟着当前页面变：一周视图最常加 DDL（场景 B），清单页加课程。
-    // 窄屏（≤430px）上文字太长会顶出屏幕，所以同时挂上短文案到 title，
+    // 「+ 添加」跟着当前页面变：一周视图和今天视图最常加 DDL（场景 B），清单页加课程。
+    // 窄屏（≤430px）上文字太长会顶出屏幕，所以同时挂上短文案，
     // 由 CSS 在窄屏把按钮收成一个圆形加号（见样式区的媒体查询）。
     const fab = el('btn-add');
     if (fab) {
-      const long = name === 'week' ? '+ 添加 DDL' : '+ 添加课程';
+      const isWeekish = (name === 'week' || name === 'today');
+      const long = isWeekish ? '+ 添加 DDL' : '+ 添加课程';
       fab.textContent = long;
       fab.setAttribute('data-label-long', long);
       fab.setAttribute('data-label-short', '+');
-      fab.setAttribute('aria-label', name === 'week' ? '添加 DDL' : '添加课程');
+      fab.setAttribute('aria-label', isWeekish ? '添加 DDL' : '添加课程');
     }
 
     if (window.scrollTo) window.scrollTo(0, 0);
@@ -721,7 +966,7 @@
     if (!target || !target.closest) return;
 
     const tab = target.closest('.tab');
-    if (tab) { switchView(tab.getAttribute('data-view')); return; }
+    if (tab) { navigate(tab.getAttribute('data-view')); return; }
 
     if (target.closest('[data-close]')) { closeModal(); return; }
 
@@ -733,7 +978,9 @@
     const id = trigger.getAttribute('data-id');
 
     if (action === 'add') {
-      openModal(kind || (currentView === 'week' ? 'ddl' : 'course'), null);
+      // 一周视图 / 今天视图上加 → DDL（这两个视图都是"看时间"的，最常见的是记一个 DDL）
+      const weekish = (currentView === 'week' || currentView === 'today');
+      openModal(kind || (weekish ? 'ddl' : 'course'), null);
     } else if (action === 'edit') {
       openEdit(kind, id);
     } else if (action === 'delete') {
@@ -756,11 +1003,20 @@
     const input = el('filter-input');
     if (input && input.value !== next) input.value = next;
 
+    // Day 13：筛选词也写进地址（#/courses?q=高数）——刷新、分享、后退都能保住它。
+    // 只在清单页做：在别的视图上（比如今天视图）不该被筛选词把地址改走。
+    // 用 syncHash（替换而非新增），否则每敲一个字都往历史里塞一条，后退键就废了。
+    if (currentView === 'courses') syncHash('courses', { q: filterQuery });
+
     const listArea = currentData;
     if (!listArea) {
-      // 数据还没到手（仍在骨架屏阶段）——先记下筛选词，等数据回来自然会用上
+      // 数据还没到手（仍在骨架屏阶段）——先记下筛选词，等数据回来自然会用上。
+      // 这时**别动**清单页的内容区：状态位由 renderLoadingState / renderErrorState 管着。
       return;
     }
+
+    // 数据到手了 → 把清单页从「状态位」切回正常内容
+    setCoursesState(null);
 
     const q = normalize(filterQuery);
     if (q === '') {
@@ -802,6 +1058,8 @@
     document.addEventListener('change', onChange);
     // input 事件（不是 change）—— 要边打字边筛，change 要等失焦才触发
     document.addEventListener('input', onFilterInput);
+    // 地址变了就重画 —— 后退键 / 前进键 / 手输地址都走这里
+    window.addEventListener('hashchange', applyRoute);
 
     const fc = el('form-course'); if (fc) fc.addEventListener('submit', submitCourse);
     const fd = el('form-ddl');    if (fd) fd.addEventListener('submit', submitDdl);
@@ -818,17 +1076,14 @@
     // ④ 出错状态：由 mock 开关直接模拟，方便你亲眼看到它长什么样
     if (usingMock() && mockSource() === 'error') {
       renderRange(now);
-      renderState(errorHtml('（这是 Day 8 的模拟错误，用来验证错误状态长什么样。）'));
       currentData = null;   // 数据不可用，别让筛选拿到上一轮的旧数据
-      renderCourseList([]);
-      renderDdlList([], now);
-      renderFilterMeta(0, 0);
+      renderErrorState('（这是 Day 8 的模拟错误，用来验证错误状态长什么样。）');
       return;
     }
 
-    // ① 加载中：先把骨架铺上，再去拿数据
+    // ① 加载中：先把骨架铺上（三个视图都铺上），再去拿数据
     renderRange(now);
-    renderState(skeletonHtml());
+    renderLoadingState();
 
     let data;
     try {
@@ -836,11 +1091,8 @@
     } catch (err) {
       // 拿数据失败 —— 这是 ④ 出错状态在真实场景里被触发的地方
       console.error('[app] 读取数据失败', err);
-      renderState(errorHtml(err && err.message ? err.message : ''));
       currentData = null;
-      renderCourseList([]);
-      renderDdlList([], now);
-      renderFilterMeta(0, 0);
+      renderErrorState(err && err.message ? err.message : '');
       return;
     }
 
@@ -853,6 +1105,9 @@
       return isOverdue(d, now);
     }).sort(byDeadline));
     renderWeek(courses, ddls, now);
+    // Day 13：今天视图（二级）也要跟着同一份数据重画，
+    // 否则在清单页改完数据、切回今天视图会看到旧内容。
+    renderToday(courses, ddls, now);
 
     // Day 12：清单页带上当前筛选条件重画。
     // 这里刻意复用 applyFilter（而不是再写一遍筛选），
@@ -878,12 +1133,45 @@
     setFormBusy: setFormBusy,
     // Day 12：筛选入口。Skill 检查时要能直接驱动筛选，不用去模拟键盘输入。
     applyFilter: applyFilter,
-    getFilterQuery: function () { return filterQuery; }
+    getFilterQuery: function () { return filterQuery; },
+    // Day 13：路由。暴露出来方便验证脚本直接驱动，不必去改 location。
+    navigate: navigate,
+    applyRoute: applyRoute,
+    parseHash: parseHash,
+    hashFor: hashFor,
+    applySourceFromUrl: applySourceFromUrl,
+    renderLoadingState: renderLoadingState,
+    renderErrorState: renderErrorState
   };
+
+  /* Day 13：四种状态要能"随时看到"，所以开一个地址开关：
+       ?src=empty   空状态
+       ?src=error   出错状态
+       ?src=normal  正常（默认）
+     这只是**验收通道** —— 数据一个字节没变，只是让已有的 mock 开关能从地址栏拨一下，
+     省得每次为了截图都要去改 mock-data.js 再刷新。
+
+     写法用 `?src=error#/week`（query 在 hash 前面）：切视图只改 hash，
+     query 会留着，于是四种状态能在任意视图上看到。
+     （`#/week?src=error` 也认，但那样一切视图就丢了。） */
+  function applySourceFromUrl() {
+    const raw = String(location.search || '') + '&' + String(location.hash || '');
+    const m = /[?&#]src=(normal|empty|error)\b/.exec(raw);
+    return m ? m[1] : null;
+  }
 
   function boot() {
     bindEvents();
-    switchView('week');
+
+    // 地址里指定了数据源就先拨过去，再渲染 —— 这样第一屏就是目标状态
+    const src = applySourceFromUrl();
+    if (src && window.MockStore) window.MockStore.source = src;
+
+    // 第一次打开：地址栏是空的（或没带 #/xxx）→ 静默补成默认视图，
+    // 让地址栏一上来就长得规范，而不是先空着再等用户点一下才出现。
+    if (!location.hash) syncHash(DEFAULT_VIEW, null);
+
+    applyRoute();   // 按地址切到对应视图（空地址会落到默认视图）
     render().catch(function (err) {
       console.error('[app] 渲染失败', err);
     });
