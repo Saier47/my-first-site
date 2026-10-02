@@ -2,13 +2,28 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>这一周｜课表与 DDL 助手</title>
 
-  <!-- PRD 遗留问题 1：加到手机主屏需要的 meta（实测见板块③） -->
+  <!-- Day 14：加到手机主屏（PRD 遗留问题 1 —— 这一条终于做完了）
+       ⚠️ 光有下面那两个 meta 是**不够的**：
+       `apple-mobile-web-app-capable` 只是"允许以 App 方式打开"，
+       没有 manifest、没有图标的话，加到主屏会得到一个**白板图标 + 没名字**的东西，
+       看起来就不像正经 App，谁也不会点。
+       现在补齐了三样：manifest.json / 图标 PNG / 主屏上显示的名字。
+       —— 这也正是同伴那句"没人会用链接"的技术根源之一。 -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <!-- iOS 的主屏图标必须是**方形不透明**的（系统自己切圆角），见 make-icons.js -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+
   <!-- Day 8：主题色跟着主视图换成深色科技风 -->
   <meta name="theme-color" content="#080b14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <!-- 加到主屏后显示的名字（长了会被截断，所以用短的「这一周」） -->
+  <meta name="apple-mobile-web-app-title" content="这一周" />
+  <!-- 打开后状态栏也保持深色，和页面同色 —— 看起来才像原生 App，不像网页 -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
   <!-- 样式内嵌，不单独拆 css 文件（TECH_DESIGN 2.3） -->
   <style>
@@ -61,12 +76,17 @@
       --ok: #3ddbd9;
 
       --tab-h: 56px;
+      /* Day 14：加主屏后，iPhone 底部那条 home 横条会压住底部导航。
+         env() 是系统给的安全区高度 —— 但**必须配 viewport-fit=cover** 才有值，
+         否则永远读到 0（这是最容易漏的一步）。
+         非全面屏 / 桌面浏览器会落到 0px，等于没加。 */
+      --safe-b: env(safe-area-inset-bottom, 0px);
       --radius: 14px;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 0 0 calc(var(--tab-h) + 28px);
+      padding: 0 0 calc(var(--tab-h) + 28px + var(--safe-b));
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
@@ -921,7 +941,9 @@
       bottom: 0;
       z-index: 20;
       display: flex;
-      height: var(--tab-h);
+      box-sizing: border-box;
+      height: calc(var(--tab-h) + var(--safe-b));
+      padding-bottom: var(--safe-b);
       background: rgba(8, 11, 20, 0.86);
       -webkit-backdrop-filter: blur(14px) saturate(140%);
       backdrop-filter: blur(14px) saturate(140%);
@@ -957,7 +979,7 @@
     .fab {
       position: fixed;
       right: 16px;
-      bottom: calc(var(--tab-h) + 16px);
+      bottom: calc(var(--tab-h) + 16px + var(--safe-b));
       z-index: 20;
       height: 48px;
       padding: 0 22px;
