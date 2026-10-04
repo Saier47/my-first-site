@@ -19,6 +19,23 @@
 > 已把默认改成**真数据**（假数据改为按地址参数显式开启）。详见 `usability-checkup.md`。
 > Day 14 · 2026-10-02：一次轻量真人测试；据同伴反馈补上了 **「加到手机主屏」**
 > （manifest + 图标 + 全面屏适配），让它能像 App 一样待在桌面上。详见 `day14-usertest.md`。
+> Day 15 · 2026-10-04：**第一次上云** —— 开通 CloudBase 环境，部署 `/api/health` 云函数
+> （公网返回 JSON）和前端页面（静态托管），并写下前后端的接口契约 `api-contract.md`。
+> 这是产品**第一次有了"别人的电脑"**：前 14 天数据全在自己浏览器里。详见 `day15-deploy.md`。
+
+---
+
+## 线上地址（Day 15 起）
+
+| 什么 | 地址 |
+| --- | --- |
+| **前端页面** | https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html |
+| **健康检查接口** | https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/health |
+
+> ⚠️ **默认域名会先弹一个腾讯云的「访问提示中间页」** —— 访客要点一下「确定访问」才能进去。
+> 这是云开发对**未备案测试域名**的强制安全提醒，官方文档写明**关不掉**，
+> 唯一合规办法是买域名 + ICP 备案 + 绑定自定义域名（约 1–2 周）。
+> 详见 `day15-deploy.md` 第 5 节。
 
 ---
 
@@ -160,7 +177,17 @@ my-first-site/
 ├── docs/day10/       Day 10 · 修前 / 修后对照截图
 ├── docs/day11/       Day 11 · 点击前 / 保存中 / 保存成功 三态截图
 ├── docs/day12/       Day 12 · 筛选三情况截图 + 项目内 SKILL.md 截图
-└── docs/day13/       Day 13 · 视图切换三张 + 四种状态四张
+├── docs/day13/       Day 13 · 视图切换三张 + 四种状态四张
+├── cloudbaserc.json      Day 15 · CloudBase 部署配置（函数类型/公网/网关路径）
+├── cloudfunctions/
+│   └── api-health/       Day 15 · 健康检查云函数
+│       ├── index.js          起一个 HTTP 服务，监听 9000
+│       ├── scf_bootstrap     平台启动脚本（指向 index.js）
+│       └── package.json
+├── api-contract.md   Day 15 · 前后端接口契约（8 个业务接口 + 1 个健康检查）
+├── check-day15.js    Day 15 · 云端部署自检（35 项，跑起来要联网）
+├── day15-deploy.md   Day 15 · 上云记录（含两个踩坑：函数类型 / 测试域名警告页）
+└── docs/day15/       Day 15 · 公网页面截图
 ```
 
 **一条铁律：`localStorage` 只出现在 `store.js` 里。**

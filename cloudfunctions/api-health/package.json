@@ -1,0 +1,8 @@
+{
+  "name": "api-health",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Day 15 · 健康检查云函数 —— 回答「服务还活着吗」",
+  "main": "index.js",
+  "license": "UNLICENSED"
+}

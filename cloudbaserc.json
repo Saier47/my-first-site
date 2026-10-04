@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "version": "2.1",
+  "envId": "my-first-site-d0g3re4p71560e327",
+  "region": "ap-shanghai",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "api-health",
+      "type": "HTTP",
+      "runtime": "Nodejs18.15",
+      "timeout": 5,
+      "memorySize": 256,
+      "installDependency": false,
+      "description": "Day15 health check - is the service alive",
+      "public": true,
+      "gatewayPath": "/api/health"
+    }
+  ]
+}
