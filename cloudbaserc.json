@@ -15,6 +15,22 @@
       "description": "Day15 health check - is the service alive",
       "public": true,
       "gatewayPath": "/api/health"
+    },
+    {
+      "name": "api-func",
+      "type": "HTTP",
+      "runtime": "Nodejs18.15",
+      "timeout": 10,
+      "memorySize": 256,
+      "installDependency": false,
+      "description": "Day17 read APIs GET /api/courses and GET /api/ddls",
+      "public": true,
+      "gatewayPath": "/api",
+
+      "envVariables": {
+        "TCB_ENV_ID": "my-first-site-d0g3re4p71560e327",
+        "CLOUDBASE_API_KEY": "__INJECTED_BY_SCRIPT__"
+      }
     }
   ]
 }

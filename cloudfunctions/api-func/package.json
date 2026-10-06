@@ -1,0 +1,8 @@
+{
+  "name": "api-func",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Day 17 · 读接口云函数 GET /api/courses 与 GET /api/ddls",
+  "main": "index.js",
+  "license": "UNLICENSED"
+}

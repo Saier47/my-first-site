@@ -3,6 +3,13 @@
 .env.local
 .env.*.local
 
+# Day 17 · 临时存放 CloudBase API Key（service_role 万能钥匙）
+# 只在「把 Key 灌进云函数环境变量」这一步存在，用完立刻删。
+# 双保险：整个目录被忽略 + 文件名后缀也被忽略，防止有人改扩展名后误提交。
+.secrets/
+*.apikey
+apikey.txt
+
 # ---- 依赖 ----
 node_modules/
 

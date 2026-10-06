@@ -172,15 +172,25 @@ https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.co
 
 | # | 功能 | 方法 | 路径 | 对应 store.js | 状态 |
 |---|---|---|---|---|---|
-| 1 | 取课程列表 | `GET` | `/api/courses` | `listCourses()` | Day 16 |
+| 1 | 取课程列表 | `GET` | `/api/courses` | `listCourses()` | ✅ **Day 17 已实现** |
 | 2 | 新建课程 | `POST` | `/api/courses` | `createCourse(input)` | Day 16 |
 | 3 | 修改课程 | `PATCH` | `/api/courses/:id` | `updateCourse(id, patch)` | Day 16 |
 | 4 | 删除课程 | `DELETE` | `/api/courses/:id` | `deleteCourse(id)` | Day 16 |
-| 5 | 取 DDL 列表 | `GET` | `/api/ddls` | `listDdls()` | Day 16 |
+| 5 | 取 DDL 列表 | `GET` | `/api/ddls` | `listDdls()` | ✅ **Day 17 已实现** |
 | 6 | 新建 DDL | `POST` | `/api/ddls` | `createDdl(input)` | Day 16 |
 | 7 | 修改 DDL | `PATCH` | `/api/ddls/:id` | `updateDdl(id, patch)` | Day 16 |
 | 8 | 删除 DDL | `DELETE` | `/api/ddls/:id` | `deleteDdl(id)` | Day 16 |
 | — | **健康检查** | `GET` | `/api/health` | ——（没有对应函数） | ✅ **Day 15 已完成** |
+
+> **Day 17 实现备注（只为 #1 和 #5 补，其余仍是待做）**
+>
+> - 实现位置：`cloudfunctions/api-func/index.js`（一个 HTTP 云函数管两条 GET 路由，按路径分发）
+> - 网关登记：`cloudbaserc.json` → `api-func`，`type: HTTP` + `public: true` + `gatewayPath: "/api"`
+> - 读数据方式：走 CloudBase **PostgREST 网关**（`/v1/rdb/rest/<表>`），只读、不写 SQL 字符串；
+>   两个接口的筛选/排序都是**固定常量**（不来自用户输入），所以没有注入面。
+> - ⚠️ 踩到的坑：`gatewayPath: "/api"` 时网关会**剥掉 `/api` 前缀**再转发，
+>   函数里因此做了路径归一化（带不带前缀都认）。
+> - 自检：`check-day17.js`（52 项，含真打公网接口）
 
 **为什么用 `PATCH` 而不是 `PUT`**：
 `PATCH` = "我只改我传的这几个字段"，`PUT` = "用我传的整条替换掉旧的"。
