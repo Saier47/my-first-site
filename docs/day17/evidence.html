@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 17 接口返回证据</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 32px 40px;
+    background: #0d1117; color: #e6edf3;
+    font-family: "Cascadia Mono", "Consolas", "Microsoft YaHei", monospace;
+    font-size: 13px; line-height: 1.75;
+  }
+  .url {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 12px 16px; margin-bottom: 16px; word-break: break-all;
+  }
+  .url .label { color: #8b949e; margin-right: 8px; }
+  .url .val { color: #79c0ff; }
+  .meta { color: #7ee787; margin-bottom: 16px; font-size: 14px; }
+  .meta .badge {
+    background: #238636; color: #fff; padding: 2px 10px;
+    border-radius: 999px; margin-right: 10px; font-weight: bold;
+  }
+  pre {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 18px 20px; margin: 0; overflow: visible;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .k { color: #79c0ff; }   /* key */
+  .s { color: #a5d6ff; }   /* string */
+  .n { color: #ffa657; }   /* number */
+  .b { color: #ff7b72; }   /* bool/null */
+  .p { color: #8b949e; }   /* punct */
+  .hl { background: #1f6feb44; border-radius: 3px; }
+  .note {
+    margin-top: 18px; padding: 14px 18px;
+    background: #1c2128; border-left: 4px solid #d29922; border-radius: 6px;
+    color: #d0d7de; font-family: "Microsoft YaHei", sans-serif; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div class="url">
+    <span class="label">GET</span>
+    <span class="val">https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses</span>
+  </div>
+  <div class="meta"><span class="badge">HTTP 200</span>1.32s &nbsp;·&nbsp; 10 条课程，按 星期 + 开始时间 升序 &nbsp;·&nbsp; 2026-10-06</div>
+<pre>{"ok":<span class="b">true</span>,"data":[{"id":<span class="s">"c_seed_01"</span>,"name":<span class="s">"高等数学"</span>,"day_of_week":<span class="n">1</span>,"start_time":<span class="s">"08:00"</span>,"end_time":<span class="s">"09:40"</span>,"location":<span class="s">"三教 201"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_02"</span>,"name":<span class="s">"大学英语"</span>,"day_of_week":<span class="n">1</span>,"start_time":<span class="s">"10:15"</span>,"end_time":<span class="s">"11:55"</span>,"location":<span class="s">"五教 108"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_03"</span>,"name":<span class="s">"数据结构"</span>,"day_of_week":<span class="n">2</span>,"start_time":<span class="s">"08:00"</span>,"end_time":<span class="s">"09:40"</span>,"location":<span class="s">"四教 305"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="hl"><span class="s">"2026-10-06T20:43:56.240629+08:00"</span></span>},{"id":<span class="s">"c_seed_04"</span>,"name":<span class="s">"计算机网络"</span>,"day_of_week":<span class="n">2</span>,"start_time":<span class="s">"14:00"</span>,"end_time":<span class="s">"15:40"</span>,"location":<span class="s">"四教 401"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_05"</span>,"name":<span class="s">"线性代数"</span>,"day_of_week":<span class="n">3</span>,"start_time":<span class="s">"10:15"</span>,"end_time":<span class="s">"11:55"</span>,"location":<span class="s">"三教 105"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_06"</span>,"name":<span class="s">"计算机组成原理"</span>,"day_of_week":<span class="n">3</span>,"start_time":<span class="s">"14:00"</span>,"end_time":<span class="s">"15:40"</span>,"location":<span class="s">"四教 208"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_07"</span>,"name":<span class="s">"操作系统"</span>,"day_of_week":<span class="n">4</span>,"start_time":<span class="s">"08:00"</span>,"end_time":<span class="s">"09:40"</span>,"location":<span class="s">"四教 302"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_08"</span>,"name":<span class="s">"思想政治"</span>,"day_of_week":<span class="n">4</span>,"start_time":<span class="s">"16:00"</span>,"end_time":<span class="s">"17:40"</span>,"location":<span class="s">"一教 大教室"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_09"</span>,"name":<span class="s">"概率论与数理统计"</span>,"day_of_week":<span class="n">5</span>,"start_time":<span class="s">"10:15"</span>,"end_time":<span class="s">"11:55"</span>,"location":<span class="s">"三教 301"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>},{"id":<span class="s">"c_seed_10"</span>,"name":<span class="s">"创新创业实践"</span>,"day_of_week":<span class="n">7</span>,"start_time":<span class="s">"09:00"</span>,"end_time":<span class="s">"11:00"</span>,"location":<span class="s">"六教 创新中心"</span>,"created_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>,"updated_at":<span class="s">"2026-10-05T11:49:55.57264+08:00"</span>}],"requestId":<span class="s">"req_goo56kivmuwrthrn"</span>}</pre>
+  <div class="note">
+    <b>高亮那处是「改一条库记录，接口跟着变」的痕迹：</b><br>
+    今天把 <code>c_seed_03</code>（数据结构）的 location 从「四教 305」改成「四教 999」，
+    重新请求接口 → 返回「四教 999」；改回「四教 305」→ 返回又变回来。<br>
+    这条记录的 <code>updated_at</code> 因此变成 <code>2026-10-06 20:43</code>，
+    而其余 9 条都还是 <code>10-05</code> 的建库时间 —— <b>这正是数据来自真库、而非写死的证据。</b>
+  </div>
+</body>
+</html>
