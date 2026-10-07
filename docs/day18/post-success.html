@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 18 · POST 成功返回</title>
+<style>
+  body {
+    margin: 0; padding: 36px 44px;
+    background: #ffffff; color: #1f2328;
+    font-family: "Cascadia Mono", "Consolas", "Microsoft YaHei", monospace;
+    font-size: 13.5px; line-height: 1.8;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; letter-spacing: .3px; }
+  .sub { color: #656d76; font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px; margin-bottom: 20px; }
+
+  .bar {
+    background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
+    padding: 11px 16px; margin-bottom: 18px; word-break: break-all;
+  }
+  .method {
+    display: inline-block; background: #1a7f37; color: #fff;
+    padding: 1px 9px; border-radius: 5px; font-weight: bold; font-size: 12px;
+    margin-right: 9px; vertical-align: 1px;
+  }
+  .url { color: #0969da; }
+
+  .label {
+    font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px;
+    color: #656d76; margin: 20px 0 7px; font-weight: bold;
+  }
+
+  pre {
+    background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
+    padding: 15px 18px; margin: 0; white-space: pre-wrap; word-break: break-all;
+    font-size: 13px; line-height: 1.75;
+  }
+  .k { color: #0550ae; }
+  .s { color: #0a3069; }
+  .n { color: #953800; }
+  .b { color: #cf222e; }
+  .p { color: #656d76; }
+
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin: 22px 0 8px; font-family: "Microsoft YaHei", sans-serif;
+  }
+  .badge {
+    background: #1a7f37; color: #fff; padding: 3px 12px;
+    border-radius: 999px; font-weight: bold; font-size: 12.5px;
+  }
+  .hint { color: #656d76; font-size: 12.5px; }
+
+  .hl { background: #fff8c5; border-radius: 3px; padding: 0 2px; }
+  .note {
+    margin-top: 22px; padding: 14px 18px;
+    background: #f6f8fa; border-left: 4px solid #1a7f37; border-radius: 5px;
+    font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px; line-height: 1.85;
+  }
+  .note b { color: #1a7f37; }
+</style>
+</head>
+<body>
+  <h1>Day 18 · 新建课程接口 —— POST 成功返回</h1>
+  <div class="sub">2026-10-07 · CloudBase 环境 my-first-site-d0g3re4p71560e327</div>
+
+  <div class="bar">
+    <span class="method">POST</span>
+    <span class="url">https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses</span>
+  </div>
+
+  <div class="label">请求体（Content-Type: application/json）</div>
+<pre>{
+  <span class="k">"name"</span>: <span class="s">"Day18 演示课"</span>,
+  <span class="k">"day_of_week"</span>: <span class="n">6</span>,
+  <span class="k">"start_time"</span>: <span class="s">"14:00"</span>,
+  <span class="k">"end_time"</span>: <span class="s">"15:40"</span>,
+  <span class="k">"location"</span>: <span class="s">"二教 101"</span>
+}</pre>
+
+  <div class="status">
+    <span class="badge">HTTP 200</span>
+    <span class="hint">响应体 —— 形状与 api-contract.md 第 2.3 / 5.2 节一致</span>
+  </div>
+<pre>{
+  <span class="k">"ok"</span>: <span class="b">true</span>,
+  <span class="k">"data"</span>: {
+    <span class="k">"id"</span>: <span class="hl"><span class="s">"c_muy5tskqt8wm3a"</span></span>,
+    <span class="k">"name"</span>: <span class="s">"Day18 演示课"</span>,
+    <span class="k">"day_of_week"</span>: <span class="n">6</span>,
+    <span class="k">"start_time"</span>: <span class="s">"14:00"</span>,
+    <span class="k">"end_time"</span>: <span class="s">"15:40"</span>,
+    <span class="k">"location"</span>: <span class="s">"二教 101"</span>,
+    <span class="k">"created_at"</span>: <span class="s">"2026-10-07T21:45:19.019675+08:00"</span>,
+    <span class="k">"updated_at"</span>: <span class="s">"2026-10-07T21:45:19.019675+08:00"</span>
+  },
+  <span class="k">"requestId"</span>: <span class="s">"req_yqc2znv8muy5tskp"</span>
+}</pre>
+
+  <div class="note">
+    <b>两处可以留意一下：</b><br>
+    ① 请求里<b>没有传 id</b>，返回里的 <span class="hl"><code>c_muy5tskqt8wm3a</code></span> 是<b>后端生成的</b>
+       —— 契约第 3.1 节说的「不传则后端生成」就是这一种。<br>
+    ② <code>created_at</code> / <code>updated_at</code> 也由数据库给出，不是前端传的；
+       返回的是<b>完整的那条记录</b>，前端拿到可以直接塞进列表，不用自己拼字段。
+  </div>
+</body>
+</html>

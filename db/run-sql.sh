@@ -105,9 +105,17 @@ for i, s in enumerate(stmts, 1):
     print('--- 第 %d/%d 条 ---' % (i, len(stmts)))
     print('SQL: ' + (s[:90] + ('...' if len(s) > 90 else '')))
     p = subprocess.run([sys.argv[3], 'db', 'execute', '-e', sys.argv[2],
-                        '--sql', s, '--json'], capture_output=True, text=True)
+                        '--sql', s, '--json'], capture_output=True,
+                       encoding='utf-8', errors='replace')
     out = (p.stdout or '') + (p.stderr or '')
-    if 'DatabaseSqlSyntaxError' in out or 'DatabaseSqlExecutionError' in out:
+    # 🔴 Day 18 新增：识别"登录过期"。
+    #    2026-10-07 实测踩到：tcb 登录过期时，9 条 SQL **全部没执行**，
+    #    但输出里只有一段"请去授权"的提示 —— 而这段提示当时被编码问题吞了，
+    #    结果看起来像"跑过了"。**这是最危险的一种失败：安静地什么也没做。**
+    if 'No valid identity' in out or 'cli-auth' in out:
+        print('  ✗ 未登录（或登录刚过期）！这次执行很可能一条都没生效。')
+        print('     先跑 tcb login --flow web，再重跑本脚本。')
+    elif 'DatabaseSqlSyntaxError' in out or 'DatabaseSqlExecutionError' in out:
         print('  ✗ 报错：' + out[:400])
     else:
         print('\n'.join(out.splitlines()[-tail_n:]))

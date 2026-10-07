@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 18 · 数据库里新增的那一行</title>
+<style>
+  body {
+    margin: 0; padding: 36px 44px;
+    background: #ffffff; color: #1f2328;
+    font-family: "Cascadia Mono", "Consolas", "Microsoft YaHei", monospace;
+    font-size: 13.5px; line-height: 1.8;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  .sub { color: #656d76; font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px; margin-bottom: 22px; }
+
+  .label {
+    font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px;
+    color: #656d76; margin: 0 0 7px; font-weight: bold;
+  }
+  pre.sql {
+    background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
+    padding: 15px 18px; margin: 0 0 24px; white-space: pre-wrap; word-break: break-all;
+    font-size: 13px; line-height: 1.75;
+  }
+  .kw { color: #cf222e; font-weight: bold; }
+  .str { color: #0a3069; }
+  .cm { color: #6e7781; font-style: italic; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th {
+    background: #f6f8fa; color: #1f2328; text-align: left;
+    padding: 9px 11px; border: 1px solid #d0d7de; font-weight: bold; white-space: nowrap;
+  }
+  td {
+    padding: 11px; border: 1px solid #d0d7de; color: #1f2328;
+    background: #dafbe1;   /* 淡绿：这一行是重点 */
+  }
+  td.id { font-weight: bold; color: #1a7f37; }
+  td.time { font-size: 12px; color: #0a3069; }
+
+  .meta {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 12px;
+    font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px;
+  }
+  .badge {
+    background: #0550ae; color: #fff; padding: 2px 10px;
+    border-radius: 999px; font-size: 11.5px; font-weight: bold;
+  }
+  .rows { color: #656d76; }
+
+  .note {
+    margin-top: 26px; padding: 14px 18px;
+    background: #f6f8fa; border-left: 4px solid #1a7f37; border-radius: 5px;
+    font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px; line-height: 1.9;
+  }
+  .note b { color: #1a7f37; }
+  .note .hl { background: #fff8c5; border-radius: 3px; padding: 0 3px; }
+</style>
+</head>
+<body>
+  <h1>Day 18 · 数据库里新增的那一行</h1>
+  <div class="sub">2026-10-07 · CloudBase PostgreSQL · 环境 my-first-site-d0g3re4p71560e327</div>
+
+  <div class="meta">
+    <span class="badge">PostgreSQL</span>
+    <span class="rows">这条不是从接口读的 —— 是<b>直接连数据库查的</b>，用来交叉印证接口真的写进去了</span>
+  </div>
+
+  <div class="label">查询语句</div>
+<pre class="sql"><span class="kw">SELECT</span> id, name, day_of_week, start_time, end_time, location, created_at
+  <span class="kw">FROM</span> courses
+ <span class="kw">WHERE</span> id = <span class="str">'c_muy5tskqt8wm3a'</span>;</pre>
+
+  <div class="label">查询结果（1 行）</div>
+  <table>
+    <thead>
+      <tr>
+        <th>id</th><th>name</th><th>day_of_week</th><th>start_time</th>
+        <th>end_time</th><th>location</th><th>created_at</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="id">c_muy5tskqt8wm3a</td>
+        <td>Day18 演示课</td>
+        <td>6</td>
+        <td>14:00</td>
+        <td>15:40</td>
+        <td>二教 101</td>
+        <td class="time">2026-10-07 21:45:19.019675+08</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <b>怎么证明"数据库真的多了一行"：</b><br>
+    · <code>courses</code> 行数：Day 16 灌种子后是 <b>10</b> 行 →
+      现在 <span class="hl">12 行</span>（今天通过接口写进 2 行测试数据）<br>
+    · 这条 <code>c_muy5tskqt8wm3a</code> 的 <b>id 和 created_at 都不是请求里给的</b> ——
+      请求只发了 5 个业务字段，id 是后端生成的、时间戳是数据库生成的。<br>
+    · 而且它和接口返回的 JSON <b>逐字一致</b>（对照上一张图）——
+      两边是两条独立的路（一个走 HTTP 接口、一个直连数据库），
+      结论一样，才叫验证过。
+  </div>
+</body>
+</html>

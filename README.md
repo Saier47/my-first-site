@@ -29,6 +29,9 @@
 > `GET /api/courses` 与 `GET /api/ddls`，直连云数据库返回真数据；顺手立了「密钥不进仓库」的
 > 四层防护（`.gitignore` / 占位符 / 临时注入脚本 / pre-commit 拦截）。
 > 这是产品第一次做到**「改一条库里的记录，刷新页面就变」**。
+> Day 18 · 2026-10-07：**云端也能写了** —— 同一个云函数加上 `POST /api/courses` 与
+> `POST /api/ddls`，带中文校验和**三层防重复**（id 冲突 / 内容查重 / 数据库唯一约束）。
+> 这是产品第一次做到**「从接口写进去的记录，真的躺在数据库里」**。
 
 ---
 
@@ -38,8 +41,17 @@
 | --- | --- |
 | **前端页面** | https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html |
 | **健康检查接口** | https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/health |
-| **课程列表接口**（Day 17） | https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses |
-| **DDL 列表接口**（Day 17） | https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/ddls |
+| **课程列表接口**（Day 17 读 / Day 18 写） | https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses |
+| **DDL 列表接口**（Day 17 读 / Day 18 写） | https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/ddls |
+
+> 📌 后两个接口**既能读也能写**：浏览器地址栏直接打开是 `GET`（看数据）；
+> 要试写入得用 `POST`，比如：
+> ```bash
+> curl -X POST https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses \
+>   -H "Content-Type: application/json" \
+>   -d '{"name":"测试课","day_of_week":1,"start_time":"08:00","end_time":"09:40"}'
+> ```
+> 想一次性验完整套（含防重复、中文报错），直接跑 `D:/node.exe check-day18.js`。
 
 > ⚠️ **默认域名会先弹一个腾讯云的「访问提示中间页」** —— 访客要点一下「确定访问」才能进去。
 > 这是云开发对**未备案测试域名**的强制安全提醒，官方文档写明**关不掉**，
@@ -193,8 +205,8 @@ my-first-site/
 │   │   ├── index.js          起一个 HTTP 服务，监听 9000
 │   │   ├── scf_bootstrap     平台启动脚本（指向 index.js）
 │   │   └── package.json
-│   └── api-func/         Day 17 · 读接口云函数（一个函数管两条 GET 路由）
-│       ├── index.js          GET /api/courses + GET /api/ddls，直连 PostgreSQL
+│   └── api-func/         Day 17 读 / Day 18 写（一个函数管两条路由，按方法分发）
+│       ├── index.js          GET + POST /api/courses 与 /api/ddls，直连 PostgreSQL
 │       ├── scf_bootstrap     平台启动脚本（指向 index.js）
 │       └── package.json
 ├── api-contract.md   Day 15 · 前后端接口契约（8 个业务接口 + 1 个健康检查）
@@ -206,9 +218,12 @@ my-first-site/
 │   ├── seed.sql          种子数据（幂等，可反复跑）
 │   ├── verify.sql        四条 select 验证（对应页面四块内容）
 │   ├── run-sql.sh        执行器：剥注释 + 逐条执行 + 自动核对
-│   └── verify-day16.sh   真库验证（43 项，直连 CloudBase 查表/约束/查询）
+│   ├── verify-day16.sh   真库验证（43 项，直连 CloudBase 查表/约束/查询）
+│   ├── alter-day18.sql   Day 18 · 加唯一约束（防重复的"硬"保险）
+│   └── cleanup-day18.sql Day 18 · 清掉验证数据（**需要时才跑**）
 ├── check-day16.js    Day 16 · 数据模型自检（静态层 43 项）
 ├── check-day17.js    Day 17 · 读接口自检（52 项，要联网打真接口）
+├── check-day18.js    Day 18 · 写接口自检（44 项，要联网；会写两行测试数据当证据）
 ├── scripts/
 │   ├── inject-key.sh        部署前把 Key 临时写进配置；--restore 还原
 │   └── check-no-secrets.sh  防密钥泄露三查；--install-hook 装 pre-commit
@@ -262,20 +277,20 @@ my-first-site/
 
 这两条等接入云数据库之后解决。
 
-### 云数据库建好了，接口也通了，但前端**还没接**（Day 17 现状）
+### 云数据库能读也能写了，但前端**还没接**（Day 18 现状）
 
-Day 16 已经在 CloudBase 里把 `courses` / `ddls` 两张表建好、也灌了种子数据（存在 `db/` 里），
-Day 17 又让云函数能**从这两张表读出来**（`GET /api/courses` / `GET /api/ddls`）。
+Day 16 建表灌种子 · Day 17 让云函数能**读** · Day 18 让云函数能**写**。
 但**网页目前读写的仍然是浏览器里的 localStorage**。
 
-这不是没做完，是**故意分开的**：建表（Day 16）、写读接口（Day 17）、改前端（Day 18）是三件事。
+这不是没做完，是**故意分开的**：建表(16) → 读接口(17) → 写接口(18) → 改前端(19)。
 到今天为止，`store.js` 还没动过 —— 函数签名一个都不变，`app.js` 依旧一行不改
 （这就是 Day 5 那条铁律买来的好处）。
 
-| | 现在（Day 17） | 接上之后 |
+| | 现在（Day 18） | 接上之后 |
 | --- | --- | --- |
 | 数据存在哪 | 你自己浏览器的 localStorage | 云端 PostgreSQL |
-| 云端能读到吗 | **能**（接口已验证，见 `check-day17.js`） | 能 |
+| 云端能读到吗 | **能**（`check-day17.js` 验过 52 项） | 能 |
+| 云端能写入吗 | **能**（`check-day18.js` 验过 44 项） | 能 |
 | 网页用的是哪份 | 还是 localStorage | `store.js` 调 `/api/courses` 等接口 |
 | 换设备能看到吗 | 不能 | 能 |
 

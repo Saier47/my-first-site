@@ -69,7 +69,22 @@ if (fnCode) {
   ok('上游出错返回 502（不把内部错误抛给前端）', /502,\s*'UPSTREAM_ERROR'/.test(fnCode));
   ok('响应不缓存（改库能立刻看到）', /'Cache-Control':\s*'no-store'/.test(fnCode));
   ok('字段白名单（select 明确列出）', /select=id,name,day_of_week/.test(fnCode) && /select=id,title,due_date/.test(fnCode));
-  ok('日志不打印 Key 本身', /apiKey=\$\{API_KEY \? '已配置' : /.test(fnCode));
+  // 🔑 这条断言 Day 18 修过，值得记一下：
+  //    原来写的是 /apiKey=\$\{API_KEY \? '已配置' : / —— 它匹配的是
+  //    **模板字符串的具体写法**。Day 18 重写函数时把 `${...}` 换成了字符串拼接，
+  //    代码明明**依然不打印 Key**，断言却假失败了。
+  //    → 断言要盯"意图"（日志里不泄露 Key），别盯"写法"（用模板串还是拼接）。
+  //      这是"测试写得太死"的典型，会让你误以为改坏了东西。
+  const logLines = fnCode.split('\n').filter(function (l) {
+    return /console\.(log|error)/.test(l);
+  });
+  ok('日志不打印 Key 本身（所有 console 行都没直接插 API_KEY）',
+     logLines.length > 0 && logLines.every(function (l) {
+       return !/\$\{API_KEY\}/.test(l)
+           && !/\+\s*API_KEY\b/.test(l)
+           && !/,\s*API_KEY\s*[,)]/.test(l);
+     }),
+     '有 console 行直接插了 API_KEY（会把 Key 写进云端日志）');
 }
 
 if (rc) {
@@ -174,14 +189,17 @@ async function checkEndpoints() {
 async function checkBoundaries() {
   console.log('\n【D】边界层');
 
-  let post;
+  // ⚠️ Day 18 改过这里：POST /api/courses 现在是**合法的写接口**，
+  //    所以"用错方法"这个边界改用 PUT 来测（PUT 在本期仍是 405）。
+  let put;
   try {
-    post = await req(BASE + '/api/courses', 'POST');
-    ok('POST 到只读接口返回 405', post.status === 405, '实际 ' + post.status);
-    ok('405 也用统一失败信封', post.json && post.json.ok === false
-       && post.json.error && post.json.error.code === 'METHOD_NOT_ALLOWED',
-       JSON.stringify(post.json).slice(0, 120));
-  } catch (e) { ok('POST 边界测试', false, String(e.message).slice(0, 100)); }
+    put = await req(BASE + '/api/courses', 'PUT');
+    ok('PUT 到接口返回 405（Day 18 起 POST 已合法，改用 PUT 测）',
+       put.status === 405, '实际 ' + put.status);
+    ok('405 也用统一失败信封', put.json && put.json.ok === false
+       && put.json.error && put.json.error.code === 'METHOD_NOT_ALLOWED',
+       JSON.stringify(put.json).slice(0, 120));
+  } catch (e) { ok('PUT 边界测试', false, String(e.message).slice(0, 100)); }
 
   let nf;
   try {
