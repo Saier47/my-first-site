@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 19 · 项目文件结构</title>
+<style>
+  body {
+    margin: 0; padding: 34px 40px;
+    background: #ffffff; color: #1f2328;
+    font-family: "Cascadia Mono", "Consolas", "Microsoft YaHei", monospace;
+    font-size: 12.5px; line-height: 1.85;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; font-family: "Microsoft YaHei", sans-serif; }
+  .sub { color: #656d76; font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px; margin-bottom: 20px; }
+
+  .tree {
+    background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 10px;
+    padding: 18px 22px; white-space: pre; overflow: visible;
+  }
+  .dir { color: #0969da; font-weight: bold; }
+  .cm  { color: #6e7781; }
+  .new {
+    background: #dafbe1; border-radius: 3px; padding: 1px 4px;
+    font-weight: bold; color: #0a5c2a;
+  }
+  .hot { background: #fff8c5; border-radius: 3px; padding: 1px 4px; }
+  .num { color: #0550ae; }
+
+  .note {
+    margin-top: 22px; padding: 14px 18px;
+    background: #f6f8fa; border-left: 4px solid #1a7f37; border-radius: 5px;
+    font-family: "Microsoft YaHei", sans-serif; font-size: 12.5px; line-height: 1.9;
+  }
+  .note b { color: #1a7f37; }
+</style>
+</head>
+<body>
+  <h1>Day 19 · 项目文件结构</h1>
+  <div class="sub">2026-10-09 · my-first-site · 重构后（拆出数据访问层）</div>
+
+  <div class="tree">my-first-site/
+├── <span class="dir">index.html</span>            <span class="cm">页面结构 + 样式（样式内联）</span>
+├── <span class="dir">app.js</span>                <span class="cm">视图层：渲染、表单、路由</span>
+├── <span class="dir">store.js</span>              <span class="cm">前端数据层（唯一碰 localStorage 的文件）</span>
+├── <span class="dir">cloudbaserc.json</span>      <span class="cm">CloudBase 部署配置</span>
+├── <span class="dir">api-contract.md</span>       <span class="cm">接口契约（8 个 CRUD）—— 今天一个字没改</span>
+│
+├── <span class="dir">cloudfunctions/</span>                  <span class="cm">👈 今天动的地方</span>
+│   ├── <span class="dir">api-health/</span>              <span class="cm">Day 15 · 健康检查</span>
+│   └── <span class="dir">api-func/</span>
+│       ├── <span class="hot">index.js</span>        <span class="num">562</span> 行  <span class="cm">HTTP 层：路由 · 校验 · 信封</span>
+│       ├── <span class="new">db.js</span>           <span class="num">255</span> 行  <span class="cm">🆕 数据访问层（Day 19 拆出来的）</span>
+│       ├── scf_bootstrap       <span class="cm">平台启动脚本</span>
+│       └── package.json
+│
+├── <span class="dir">db/</span>                          <span class="cm">数据库层（唯一允许写 SQL 的地方）</span>
+│   ├── schema.sql · seed.sql
+│   ├── alter-day18.sql         <span class="cm">唯一约束（防重复）</span>
+│   └── cleanup-day18.sql
+│
+├── check-day17.js              <span class="cm">读接口自检 55 项</span>
+├── check-day18.js              <span class="cm">写接口自检 44 项</span>
+└── docs/
+    ├── day18/                  <span class="cm">Day 18 截图与说明</span>
+    └── day19/                  <span class="cm">👈 今天</span></div>
+
+  <div class="note">
+    <b>关键变化：</b>云函数从<b>一个文件</b>变成了<b>两个文件</b>。<br>
+    · <span class="hot"><code>index.js</code></span> 只留 HTTP 的事 —— 收请求、认路由、验字段、包信封。<br>
+    · <span class="new"><code>db.js</code></span> 拿走数据库的事 —— 连库、拼查询、读写、翻译数据库的错。<br>
+    <b>对外一点没变</b>：接口路径、字段名、返回形状、错误码，全和昨天一样。
+  </div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="398" viewBox="0 0 680 398" role="img">
+  <title>Day 19 分层示意图：把数据库访问从 index.js 拆到 db.js</title>
+  <desc>上半部分是拆分前，HTTP 逻辑与数据库逻辑混在 index.js 一个文件里共 659 行；下半部分是拆分后，index.js 只留 HTTP 层共 562 行，数据库访问移到独立的 db.js 共 255 行。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="52" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#5F5E5A">现在 · 一个文件干两件事</text>
+
+  <rect x="40" y="62" width="600" height="146" rx="12" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+  <text x="60" y="86" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#444441">cloudfunctions/api-func/index.js（659 行）</text>
+
+  <rect x="56" y="98" width="568" height="42" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="340" y="120" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="13" fill="#0C447C">HTTP 的事：路由 · 请求体 · 校验 · 响应信封</text>
+
+  <rect x="56" y="148" width="568" height="42" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="340" y="170" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="13" fill="#085041">数据库的事：PostgREST 调用 · 查询语法 · 错误码 23505</text>
+
+  <path d="M340 220 L340 246" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="352" y="238" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#5F5E5A">拆分</text>
+
+  <text x="40" y="276" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#5F5E5A">拆完 · 各管一件事</text>
+
+  <rect x="40" y="286" width="270" height="96" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text x="175" y="312" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="14" font-weight="500" fill="#0C447C">index.js</text>
+  <text x="175" y="334" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#185FA5">HTTP 层 · 562 行</text>
+  <text x="175" y="360" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#185FA5">路由 · 校验 · 信封</text>
+
+  <path d="M318 334 L352 334" fill="none" stroke="#888780" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="360" y="286" width="280" height="96" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text x="500" y="312" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="14" font-weight="500" fill="#085041">db.js</text>
+  <text x="500" y="334" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#0F6E56">数据访问层 · 255 行</text>
+  <text x="500" y="360" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, system-ui, sans-serif" font-size="12" fill="#0F6E56">PostgREST · 查询 · 23505</text>
+</svg>

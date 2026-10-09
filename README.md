@@ -32,6 +32,10 @@
 > Day 18 · 2026-10-07：**云端也能写了** —— 同一个云函数加上 `POST /api/courses` 与
 > `POST /api/ddls`，带中文校验和**三层防重复**（id 冲突 / 内容查重 / 数据库唯一约束）。
 > 这是产品第一次做到**「从接口写进去的记录，真的躺在数据库里」**。
+> Day 19 · 2026-10-09：**给云函数分了层** —— 把"数据库的活"从 `index.js` 拆成独立的
+> `db.js`（`index.js` 659 → 562 行，`db.js` 255 行）。`index.js` 从此只管 HTTP 的事。
+> **对外一点没变**：接口路径、字段名、返回形状、错误码全和昨天一样，
+> 回归 `check-day17` 55 项 + `check-day18` 44 项全过。详见 `docs/day19/交付说明.md`。
 
 ---
 
@@ -205,8 +209,9 @@ my-first-site/
 │   │   ├── index.js          起一个 HTTP 服务，监听 9000
 │   │   ├── scf_bootstrap     平台启动脚本（指向 index.js）
 │   │   └── package.json
-│   └── api-func/         Day 17 读 / Day 18 写（一个函数管两条路由，按方法分发）
-│       ├── index.js          GET + POST /api/courses 与 /api/ddls，直连 PostgreSQL
+│   └── api-func/         Day 17 读 / Day 18 写 / Day 19 分层（一个函数管两条路由）
+│       ├── index.js          **HTTP 层**：路由 · 校验 · 响应信封（562 行）
+│       ├── db.js             **数据访问层**（Day 19 拆出来的，255 行）
 │       ├── scf_bootstrap     平台启动脚本（指向 index.js）
 │       └── package.json
 ├── api-contract.md   Day 15 · 前后端接口契约（8 个业务接口 + 1 个健康检查）

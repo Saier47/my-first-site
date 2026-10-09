@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 19 · 重构后接口仍正常</title>
+<style>
+  body {
+    margin: 0; padding: 30px 34px;
+    background: #ffffff;
+    font-family: "Microsoft YaHei", system-ui, sans-serif;
+    color: #1f2328;
+  }
+  h1 { font-size: 15px; margin: 0 0 4px; font-weight: 500; }
+  .sub { color: #656d76; font-size: 12.5px; margin-bottom: 18px; }
+
+  .browser {
+    border: 1px solid #d0d7de; border-radius: 10px;
+    overflow: hidden; background: #ffffff;
+  }
+  .tabs {
+    background: #f6f8fa; padding: 8px 12px 0;
+    display: flex; align-items: flex-end; gap: 6px;
+    border-bottom: 1px solid #d0d7de;
+  }
+  .dots { display: flex; gap: 6px; margin: 0 10px 9px 2px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .tab {
+    background: #ffffff; border: 1px solid #d0d7de; border-bottom-color: #ffffff;
+    border-radius: 7px 7px 0 0; padding: 6px 14px; font-size: 12px;
+    color: #1f2328; margin-bottom: -1px;
+  }
+  .bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+  }
+  .navbtn { color: #8c959f; font-size: 15px; letter-spacing: 2px; }
+  .addr {
+    flex: 1; background: #ffffff; border: 1px solid #d0d7de;
+    border-radius: 999px; padding: 6px 14px;
+    font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px;
+    color: #0969da; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lock { color: #1a7f37; }
+  .badge {
+    background: #dafbe1; color: #0a5c2a; border: 1px solid #a0d8b0;
+    border-radius: 999px; padding: 2px 10px; font-size: 11.5px; font-weight: bold;
+    white-space: nowrap;
+  }
+  .page { padding: 16px 20px 20px; }
+  pre {
+    margin: 0; font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 12.5px; line-height: 1.75; white-space: pre-wrap; word-break: break-all;
+  }
+  .k { color: #0550ae; } .s { color: #0a3069; } .n { color: #953800; }
+  .b { color: #cf222e; } .p { color: #6e7781; }
+  .more {
+    margin-top: 10px; padding: 9px 14px; background: #f6f8fa;
+    border-left: 3px solid #8c959f; border-radius: 4px;
+    font-size: 12px; color: #656d76;
+  }
+  .note {
+    margin-top: 18px; padding: 13px 17px;
+    background: #f6f8fa; border-left: 4px solid #1a7f37; border-radius: 5px;
+    font-size: 12.5px; line-height: 1.9;
+  }
+  .note b { color: #1a7f37; }
+</style>
+</head>
+<body>
+  <h1>Day 19 · 重构后接口仍正常返回</h1>
+  <div class="sub">2026-10-09 · 拆出 db.js 并重新部署后，接口行为与重构前完全一致</div>
+
+  <div class="browser">
+    <div class="tabs">
+      <div class="dots">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+      </div>
+      <div class="tab">这一周 · 课表与 DDL 助手</div>
+    </div>
+    <div class="bar">
+      <span class="navbtn">← → ⟳</span>
+      <div class="addr"><span class="lock">🔒</span> https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses</div>
+      <span class="badge">HTTP 200</span>
+    </div>
+    <div class="page">
+<pre><span class="p">{</span>
+  <span class="k">"ok"</span><span class="p">:</span> <span class="b">true</span><span class="p">,</span>
+  <span class="k">"data"</span><span class="p">: [</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"c_seed_01"</span><span class="p">,</span> <span class="k">"name"</span><span class="p">:</span> <span class="s">"高等数学"</span><span class="p">,</span> <span class="k">"day_of_week"</span><span class="p">:</span> <span class="n">1</span><span class="p">,</span> <span class="k">"start_time"</span><span class="p">:</span> <span class="s">"08:00"</span><span class="p">,</span>
+      <span class="k">"end_time"</span><span class="p">:</span> <span class="s">"09:40"</span><span class="p">,</span> <span class="k">"location"</span><span class="p">:</span> <span class="s">"三教 201"</span><span class="p">,</span> <span class="k">"created_at"</span><span class="p">:</span> <span class="s">"…"</span><span class="p">,</span> <span class="k">"updated_at"</span><span class="p">:</span> <span class="s">"…"</span> <span class="p">},</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"c_seed_02"</span><span class="p">,</span> <span class="k">"name"</span><span class="p">:</span> <span class="s">"大学英语"</span><span class="p">,</span> <span class="k">"day_of_week"</span><span class="p">:</span> <span class="n">1</span><span class="p">,</span> <span class="k">"start_time"</span><span class="p">:</span> <span class="s">"10:15"</span><span class="p">,</span>
+      <span class="k">"end_time"</span><span class="p">:</span> <span class="s">"11:55"</span><span class="p">,</span> <span class="k">"location"</span><span class="p">:</span> <span class="s">"五教 108"</span><span class="p">,</span> <span class="k">"created_at"</span><span class="p">:</span> <span class="s">"…"</span><span class="p">,</span> <span class="k">"updated_at"</span><span class="p">:</span> <span class="s">"…"</span> <span class="p">},</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"c_seed_03"</span><span class="p">,</span> <span class="k">"name"</span><span class="p">:</span> <span class="s">"数据结构"</span><span class="p">,</span> <span class="k">"day_of_week"</span><span class="p">:</span> <span class="n">2</span><span class="p">,</span> <span class="k">"start_time"</span><span class="p">:</span> <span class="s">"08:00"</span><span class="p">,</span>
+      <span class="k">"end_time"</span><span class="p">:</span> <span class="s">"09:40"</span><span class="p">,</span> <span class="k">"location"</span><span class="p">:</span> <span class="s">"四教 305"</span><span class="p">,</span> <span class="k">"created_at"</span><span class="p">:</span> <span class="s">"…"</span><span class="p">,</span> <span class="k">"updated_at"</span><span class="p">:</span> <span class="s">"…"</span> <span class="p">},</span>
+    <span class="p">{</span> <span class="k">"id"</span><span class="p">:</span> <span class="s">"c_seed_04"</span><span class="p">,</span> <span class="k">"name"</span><span class="p">:</span> <span class="s">"计算机网络"</span><span class="p">,</span> <span class="k">"day_of_week"</span><span class="p">:</span> <span class="n">2</span><span class="p">,</span> <span class="k">"start_time"</span><span class="p">:</span> <span class="s">"14:00"</span><span class="p">,</span>
+      <span class="k">"end_time"</span><span class="p">:</span> <span class="s">"15:40"</span><span class="p">,</span> <span class="k">"location"</span><span class="p">:</span> <span class="s">"四教 401"</span><span class="p">,</span> <span class="k">"created_at"</span><span class="p">:</span> <span class="s">"…"</span><span class="p">,</span> <span class="k">"updated_at"</span><span class="p">:</span> <span class="s">"…"</span> <span class="p">}</span>
+    <span class="p">…</span>
+  <span class="p">],</span>
+  <span class="k">"requestId"</span><span class="p">:</span> <span class="s">"req_q3d2nb21mv11fevv"</span>
+<span class="p">}</span></pre>
+      <div class="more">共 <b>13</b> 条（10 条种子 + 3 条验证数据）。完整响应 2768 字节，此处只展示前 4 条。</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>这张图的重点不是"接口能用"，而是"拆完还是原来那个接口"：</b><br>
+    · 地址栏、路径 <code>/api/courses</code>、响应形状 <code>{ok, data, requestId}</code> —— <b>一个字没改</b>。<br>
+    · 另外两个接口也同时验过：<code>GET /api/ddls</code> → 200、<code>GET /api/health</code> → 200。<br>
+    · 写得进去、重复会被拒也一样没变 —— 那是 <code>check-day18.js</code> 的 <b>44/44</b> 在管。
+  </div>
+</body>
+</html>

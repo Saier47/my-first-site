@@ -48,27 +48,59 @@ console.log('========================================\n');
 console.log('【A】文件层');
 
 const fnCode = read('cloudfunctions/api-func/index.js');
+// 🔴 Day 19 加：数据库访问层被拆成了独立文件 db.js。
+//    下面有几条"项目有没有这个保障"的断言，原先只在 index.js 里找 ——
+//    一拆分就全假失败了。可它们要找的东西**没消失，只是换了文件**。
+//    → 这是"断言绑了实现细节"的第二次（Day 18 那次绑的是字符串写法，这次绑的是文件位置）。
+//      改法：这类断言改用 allCode（两个文件合起来看）——
+//      因为它问的是「项目里有没有这个保障」，不是「这保障写在哪个文件里」。
+const dbCode = read('cloudfunctions/api-func/db.js');
+const allCode = (fnCode || '') + '\n' + (dbCode || '');
 const rc = read('cloudbaserc.json');
 const inject = read('scripts/inject-key.sh');
 const guard = read('scripts/check-no-secrets.sh');
 const gi = read('.gitignore');
 
 ok('云函数 api-func/index.js 存在', fnCode !== null);
+ok('数据访问层 api-func/db.js 存在（Day 19 拆出来的）', dbCode !== null);
 ok('云函数 scf_bootstrap 存在', fs.existsSync(path.join(ROOT, 'cloudfunctions/api-func/scf_bootstrap')));
 
-if (fnCode) {
+if (fnCode && dbCode) {
+  // ---- HTTP 层该有的（index.js）----
   ok('函数监听 9000 端口（平台规定）', /PORT\s*=\s*9000/.test(fnCode));
-  ok('从环境变量读 Key（不是写死的）', /process\.env\.CLOUDBASE_API_KEY/.test(fnCode));
-  ok('代码里没有写死的 JWT', !/eyJ[A-Za-z0-9_-]{10,}\./.test(fnCode));
   ok('两个路由都定义了', /'\/api\/courses'/.test(fnCode) && /'\/api\/ddls'/.test(fnCode));
   ok('成功信封 { ok, data, requestId }', /ok:\s*true,\s*data,\s*requestId/.test(fnCode));
   ok('失败信封 { ok:false, error:{code,message} }', /ok:\s*false,\s*error:\s*\{\s*code,\s*message/.test(fnCode));
-  ok('空结果兜底成数组（不是 null）', /Array\.isArray\(rows\)\s*\?\s*rows\s*:\s*\[\]/.test(fnCode));
   ok('非 GET 返回 405', /405,\s*'METHOD_NOT_ALLOWED'/.test(fnCode));
   ok('未知路径返回 404', /404,\s*'NOT_FOUND'/.test(fnCode));
   ok('上游出错返回 502（不把内部错误抛给前端）', /502,\s*'UPSTREAM_ERROR'/.test(fnCode));
   ok('响应不缓存（改库能立刻看到）', /'Cache-Control':\s*'no-store'/.test(fnCode));
-  ok('字段白名单（select 明确列出）', /select=id,name,day_of_week/.test(fnCode) && /select=id,title,due_date/.test(fnCode));
+
+  // ---- 分层的"证据"（Day 19 加）----
+  // 光把代码搬到另一个文件**不算**分层 —— 得证明两边真的不再认识对方的词。
+  // 技巧：先把注释行滤掉再搜，不然"文件头注释里提到 23505"也会算命中。
+  const fnCodeOnly = fnCode.split('\n').filter(function (l) {
+    return !/^\s*(\*|\/\/|\/\*)/.test(l);
+  }).join('\n');
+  ok('index.js 代码里没有数据库痕迹（fetch / select= / 23505）',
+     !/fetch\(/.test(fnCodeOnly) && !/select=/.test(fnCodeOnly) && !/23505/.test(fnCodeOnly));
+  ok('db.js 代码里没有 HTTP 痕迹（req / res / statusCode / writeHead）',
+     !/\breq\./.test(dbCode) && !/\bres\./.test(dbCode)
+     && !/statusCode/.test(dbCode) && !/writeHead/.test(dbCode));
+
+  // ---- 数据层 / 跨层保障（这些东西现在在 db.js 里）----
+  ok('从环境变量读 Key（不是写死的）', /process\.env\.CLOUDBASE_API_KEY/.test(allCode));
+  ok('代码里没有写死的 JWT', !/eyJ[A-Za-z0-9_-]{10,}\./.test(allCode));
+  ok('空结果兜底成数组（不是 null）', /Array\.isArray\(rows\)\s*\?\s*rows\s*:\s*\[\]/.test(allCode));
+  // ⚠️ Day 19 又改了这条 —— 这已经是"断言绑实现细节"的第三次了。
+  //    第一次（Day 15）：写死了"HTTP 200 就算过"，被 FUNCTIONS_INVOCATION_FAILED 骗过。
+  //    第二次（Day 18）：匹配模板字符串的写法，换成拼接就假失败。
+  //    第三次（今天）：匹配 `select=id,name,...` 这个 URL 串写法 ——
+  //      拆到 db.js 时把它改成了结构化的 `select: 'id,name,...'`（和 order 分开），
+  //      断言的**意图没变**，写法变了，于是假失败。
+  //    → 所以这次直接问意图：「发出去的字段是**明确列出来**的，还是图省事 `select=*`？」
+  ok('字段白名单（明确列出字段，不是 select=*）',
+     /select:\s*'id,name/.test(dbCode) && !/select=\*|select:\s*'\*/.test(allCode));
   // 🔑 这条断言 Day 18 修过，值得记一下：
   //    原来写的是 /apiKey=\$\{API_KEY \? '已配置' : / —— 它匹配的是
   //    **模板字符串的具体写法**。Day 18 重写函数时把 `${...}` 换成了字符串拼接，
