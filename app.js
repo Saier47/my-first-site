@@ -241,6 +241,37 @@
     if (node) node.textContent = md(a) + ' – ' + md(b);
   }
 
+  /* Day 20 余力加练：显示"数据同步于 xx:xx"。
+     ------------------------------------------------------------------
+     为什么这行字现在才有意义：
+       前 19 天的数据在**这台电脑的浏览器里**，"新不新"根本不用问 ——
+       你刚存的就是刚才的。
+       数据搬到云上之后，「我手机上看着和电脑上不一样」「刚改完怎么没变」
+       这类问题会真实出现，靠的就是"这份是什么时候取回来的"这个时间戳。
+
+     实现上刻意做得很薄：时间戳由 store.js 记录（那边才知道什么时候真取到了），
+     app.js 只负责"把它显示出来" —— 视图层不打听数据从哪来，
+     这是 Day 5 就定下的分层规矩。
+
+     取不到（比如是 mock 模式 / 还没成功取过）→ 整行藏起来，
+     不给用户看一个"数据同步于 --"这种没意义的空标签。 */
+  function renderSyncNote() {
+    const node = el('sync-note');
+    if (!node) return;
+    const t = window.Store && window.Store.getLastSyncedAt
+      ? window.Store.getLastSyncedAt()
+      : null;
+    if (!t) {
+      node.hidden = true;
+      node.textContent = '';
+      return;
+    }
+    const hh = String(t.getHours()).padStart(2, '0');
+    const mm = String(t.getMinutes()).padStart(2, '0');
+    node.textContent = '数据同步于 ' + hh + ':' + mm;
+    node.hidden = false;
+  }
+
   /* ======================= 渲染：过期区域（置顶） ======================= */
 
   // 逾期条目的 HTML —— 一周视图和今天视图共用，免得两处各写一遍、日后走岔
@@ -1073,6 +1104,11 @@
   async function render() {
     const now = new Date();   // 「现在」只取一次，整页渲染用同一个瞬间
 
+    // Day 20：先假设"这次不是从云上取的"，把那行同步时间收掉。
+    // 下面真取回数据了才把它写出来 —— 这样切到 mock 模式（?src=xxx）时
+    // 不会残留上一次的时间，让人以为"假数据也是从云上同步来的"。
+    renderSyncNote();
+
     // ④ 出错状态：由 mock 开关直接模拟，方便你亲眼看到它长什么样
     if (usingMock() && mockSource() === 'error') {
       renderRange(now);
@@ -1096,9 +1132,10 @@
       return;
     }
 
-    // 假数据模式下，'empty' 开关 = 拿到的是空数组（模拟"读成功但没数据"）
-    const courses = (usingMock() && mockSource() === 'empty') ? [] : data.courses;
-    const ddls = (usingMock() && mockSource() === 'empty') ? [] : data.ddls;
+    // Day 20：数据真的到手了，这时才把"同步于 xx:xx"写出来。
+    // 放在这里（不是函数开头）是因为时间是"取回来的那一刻"——
+    // 提前写、或者取失败了也写，都是在骗用户。
+    renderSyncNote();
 
     // ② 有数据 / ③ 空状态 —— 都交给 renderWeek 判断（它内部会看数组是不是空的）
     renderOverdue(ddls.filter(function (d) {

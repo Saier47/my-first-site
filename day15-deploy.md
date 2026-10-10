@@ -240,7 +240,7 @@ tcb fn list -e <envId>
 tcb routes list -e <envId>
 
 # 部署前端（先准备只含运行文件的目录！）
-tcb hosting deploy .deploy-tmp / -e <envId>
+tcb hosting deploy .deploy-tmp -e <envId>   # ⚠️ 不要传 "/"：会被 Git Bash 吞掉（Day 20 踩过）
 
 # 看前端文件列表
 tcb hosting list / -e <envId>

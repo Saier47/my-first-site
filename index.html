@@ -132,6 +132,16 @@
     }
     .top .sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
     .top .sub #week-range { color: var(--accent); font-variant-numeric: tabular-nums; }
+    /* Day 20：数据同步状态。比副标题再轻一档 —— 它是"备注"，不该跟标题抢注意力。
+       字号缩小 + 用更淡的灰，靠字符间距拉开，读起来像一行小字注解。 */
+    .top .sync-note {
+      margin: 6px 0 0;
+      font-size: 11px;
+      letter-spacing: .02em;
+      color: var(--muted);
+      opacity: .72;
+      font-variant-numeric: tabular-nums;
+    }
 
     /* 一周视图是 7 列横向铺开的，所以容器要比别的页面宽 ——
        7 列挤在 1080px 里每列只有 140px，「交数据结构实验报告」会被折成三行。
@@ -1105,6 +1115,12 @@
   <header class="top">
     <h1>这一周</h1>
     <p class="sub">课表与 DDL 叠在同一根时间轴上 · <span id="week-range">周一到周日</span></p>
+    <!-- Day 20 余力加练：数据同步状态。
+         数据现在放在云上（不是自己电脑里），"这份数据是什么时候取回来的"
+         就成了一个用户会问的问题 —— 比如手机上看着没变，是不是没同步上？
+         这行字由 store.js 在每次成功拿到数据后更新（失败时置空）。
+         空着的时候用 hidden 藏起来，不给用户看一个没意义的空标签。 -->
+    <p class="sync-note" id="sync-note" hidden></p>
   </header>
 
   <div class="wrap">
