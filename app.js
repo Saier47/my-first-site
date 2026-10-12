@@ -1137,6 +1137,13 @@
     // 提前写、或者取失败了也写，都是在骗用户。
     renderSyncNote();
 
+    // 假数据模式下，'empty' 开关 = 拿到的是空数组（模拟"读成功但没数据"）
+    // ⚠️ 这两行不能删：下面 renderOverdue / renderWeek / renderToday 全靠它俩。
+    //   （Day 20 加 renderSyncNote 时误删过一次，导致页面永远停在骨架屏 —— 见
+    //    docs/day20/交付说明.md 第 11 节。）
+    const courses = (usingMock() && mockSource() === 'empty') ? [] : data.courses;
+    const ddls = (usingMock() && mockSource() === 'empty') ? [] : data.ddls;
+
     // ② 有数据 / ③ 空状态 —— 都交给 renderWeek 判断（它内部会看数组是不是空的）
     renderOverdue(ddls.filter(function (d) {
       return isOverdue(d, now);
