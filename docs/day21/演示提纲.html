@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 21 · 演示提纲 · 这一周</title>
+<style>
+  :root{
+    --ink:#1a1d21; --ink-2:#4a4f57; --ink-3:#7a8189;
+    --line:#e3e6ea; --line-2:#f0f2f5; --bg:#fff; --bg-soft:#f7f8fa; --bg-warm:#fffdf6;
+    --ok-ink:#0b6b34; --ok-bg:#e8f6ed; --ok-line:#b6e0c6;
+    --accent:#1554c0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 28px 56px;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:14px;line-height:1.65;}
+  .wrap{max-width:1000px;margin:0 auto}
+
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:8px}
+  h1{margin:0 0 6px;font-size:23px;letter-spacing:.01em}
+  .meta{color:var(--ink-3);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .lead{margin:14px 0 0;padding:12px 14px;background:var(--bg-soft);border-left:3px solid var(--ink);
+        font-size:13.5px;color:var(--ink-2);border-radius:0 6px 6px 0}
+
+  .flow{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 28px}
+  .flow .step{flex:1 1 190px;border:1px solid var(--line);border-radius:9px;padding:11px 13px;background:var(--bg-soft);min-width:0}
+  .flow .n{font-size:11px;font-weight:700;color:#fff;background:var(--ink);display:inline-block;
+           width:19px;height:19px;line-height:19px;text-align:center;border-radius:50%;margin-right:6px}
+  .flow .t{font-weight:700;font-size:13.5px}
+  .flow .d{color:var(--ink-3);font-size:12px;margin-top:4px}
+  .flow .sec{color:var(--accent);font-size:11.5px;font-weight:700;margin-left:4px}
+
+  h2{font-size:16px;margin:30px 0 10px;padding-left:9px;border-left:4px solid var(--ink)}
+  h2 .tm{font-size:11.5px;font-weight:700;color:var(--accent);margin-left:8px;letter-spacing:.02em}
+  h3{font-size:13.5px;margin:18px 0 7px;color:var(--ink)}
+  p{margin:8px 0}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  code{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:12px;
+       background:var(--bg-soft);border:1px solid var(--line-2);border-radius:4px;padding:1px 5px}
+  a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+  b.hi{background:#fff3c4;padding:0 3px;border-radius:3px}
+
+  .say{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 7px 7px 0;
+       background:var(--bg-soft);padding:11px 14px;margin:10px 0;font-size:13.5px}
+  .say .who{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.04em;display:block;margin-bottom:4px}
+  .say .his{color:#8a6d1a;background:var(--bg-warm);border:1px dashed #e8d8a8;border-radius:5px;
+            padding:8px 11px;margin:6px 0 0;font-size:13px}
+
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg-soft);font-weight:600;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+
+  .note{margin:12px 0;padding:11px 14px;border-radius:7px;font-size:12.5px;line-height:1.65;
+        background:var(--bg-warm);border:1px solid #eee0b8;color:#6b5300}
+  .warn{margin:12px 0;padding:11px 14px;border-radius:7px;font-size:12.5px;
+        background:#fdecea;border:1px solid #f2c3bd;color:#6d1a13}
+
+  .ladder{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .ladder .row{display:flex;gap:12px;padding:10px 13px;border-bottom:1px solid var(--line-2);align-items:flex-start}
+  .ladder .row:last-child{border-bottom:0}
+  .ladder .lv{flex:0 0 118px;font-weight:700;font-size:12.5px;color:var(--ink-2)}
+  .ladder .bd{flex:1;min-width:0;font-size:13px}
+  .ladder .row.strong{background:var(--ok-bg)}
+
+  footer{margin-top:34px;padding-top:13px;border-top:1px solid var(--line);
+         color:var(--ink-3);font-size:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>演示提纲 · 「这一周」课表与 DDL 助手</h1>
+  <div class="meta">
+    Day 21 · 2026-10-11 ｜ 目标时长 <b>3 分钟</b> ｜ 全程在<b>公网地址</b>上演示，不用起本地服务<br>
+    https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html
+  </div>
+  <p class="lead">
+    <b>这份提纲只有一个任务：让别人 3 分钟听懂「这是什么、怎么用、我是怎么做出来的、我凭什么说它对」。</b>
+    四段顺序不能换 —— <b>先说他关心的问题，再给东西</b>；先讲产品，再讲过程，最后讲怎么证明。
+  </p>
+</header>
+
+<div class="flow">
+  <div class="step"><span class="n">1</span><span class="t">用户问题</span><span class="sec">约 30 秒</span>
+    <div class="d">谁的什么麻烦，现有工具为什么不解决</div></div>
+  <div class="step"><span class="n">2</span><span class="t">核心流程</span><span class="sec">约 60 秒</span>
+    <div class="d">现场走一遍：打开 → 记一条 → 刷新还在</div></div>
+  <div class="step"><span class="n">3</span><span class="t">提示词改写</span><span class="sec">约 45 秒</span>
+    <div class="d">同一件事，第一次怎么说的、后来怎么改的</div></div>
+  <div class="step"><span class="n">4</span><span class="t">验证方式</span><span class="sec">约 45 秒</span>
+    <div class="d">我凭什么说它对 —— 四层，从弱到强</div></div>
+</div>
+
+<!-- ============ ① ============ -->
+<h2>① 用户问题<span class="tm">30 秒</span></h2>
+
+<div class="say">
+  <span class="who">开场就说的那句</span>
+  「课上老师说『下周三交实验报告』—— 这句话你记在哪儿？」
+</div>
+
+<p>三个答案，三个都不好使：</p>
+<ul>
+  <li>记在<b>微信聊天记录</b>里 → 两天后消息刷下去，找不到了；</li>
+  <li>记在<b>备忘录</b>里 → 备忘录和课表是两回事，看课表的时候想不起还有作业；</li>
+  <li>记在<b>脑子里</b> → 到交作业那天才发现自己忘了。</li>
+</ul>
+
+<h3>现有工具差在哪（一句话各一个）</h3>
+<table>
+  <thead><tr><th>工具</th><th>只做什么</th><th>于是</th></tr></thead>
+  <tbody>
+    <tr><td>超级课程表</td><td>只做课表</td><td>课表漂亮，但作业不在上面</td></tr>
+    <tr><td>滴答清单</td><td>只做任务</td><td>任务齐全，但看不到你明天几点有空</td></tr>
+  </tbody>
+</table>
+<p><b class="hi">没有一个把这两件事放在同一个屏幕上。</b>这就是这个项目存在的理由。</p>
+
+<div class="say">
+  <span class="who">收尾那句话</span>
+  「所以我做的是一个网页：<b>打开就是『这一周』，固定课表和一次性 DDL 叠在同一根时间轴上。</b>
+  打开就能看，不用注册、不用装 App。」
+</div>
+
+<!-- ============ ② ============ -->
+<h2>② 核心流程<span class="tm">60 秒 · 现场演示，不念稿</span></h2>
+
+<ol>
+  <li><b>打开链接。</b>（会先跳一个腾讯云提示页 → 点「确定访问」。这是平台对未备案测试域名的强制提醒，不是我的页面。）<br>
+      看到：顶部「已经过期（还没打勾的）」，下面是本周 7 列 —— <b>课和 DDL 在同一列里，颜色不同</b>。</li>
+  <li><b>点右下「+ 添加 DDL」</b> → 填三样：事项名称 / 截止日期 / 截止时间 → 保存。<br>
+      看到：顶部飘出 <b>「✓ 已保存：XXX」</b>，弹层关闭，<b>它立刻出现在对应那一列的当天位置上</b>。</li>
+  <li><b>按 F5 刷新。它还在。</b><br>
+      ← <b>这是整段演示的重点。</b>说明数据不在这个浏览器里，在云上的数据库里。</li>
+  <li><b>（有余力再加这一下）</b>把链接发给旁边的人，他用自己手机打开 —— <b>看到的是同一份</b>。<br>
+      这一步把「我的电脑能用」变成「别人的设备也能用」。</li>
+</ol>
+
+<div class="warn">
+  <b>⚠️ 演示前必检两件事：</b><br>
+  1. <b>日期要落在本周内</b>（今天是 10/12，本周是 10/12–10/18）。填 10/20 那种下一周的日期，
+     一周视图里<b>看不见</b>它 —— 别人会以为「保存失败了」。<br>
+  2. <b>提前访问一次</b>，确认没被限流（短期内反复自动访问会触发「当前访问量已达上限」）。
+</div>
+
+<div class="note">
+  <b>顺手可以提一句</b>：顶部那行小字「数据同步于 00:47」是这一周新加的 ——
+  数据搬到云上之后，「手机上看着不一样」「刚改完怎么没变」会真实出现，这行字就是回答「这份是什么时候取回来的」。
+</div>
+
+<!-- ============ ③ ============ -->
+<h2>③ 提示词改写<span class="tm">45 秒 · 挑一个讲，别全讲</span></h2>
+
+<p>要说清的事只有一件：<b class="hi">同一件事，我第一遍是怎么说的，后来改成了什么，为什么改完更管用。</b>
+下面是三个真实例子，演示时挑一个讲透。</p>
+
+<h3>例 A（推荐）｜「怎么让 AI 不说假话」——从含糊要求，到能打勾的清单</h3>
+<div class="say">
+  <span class="who">第一遍（含糊）</span>
+  「你要保证结果是对的。」「做完告诉我。」
+  <p class="his">问题：这种话 AI 有一万种方式"完成"。它可以自己判断"应该没问题"，然后回你「已完成」—— 你还没法反驳。</p>
+</div>
+<div class="say">
+  <span class="who">改写后（写进 AGENTS.md 第八节，变成四条能打勾的检查项）</span>
+  <ol>
+    <li>这条「完成」，我<b>实际跑过一次</b>吗？跑的是什么命令 / 打开的是什么页面？</li>
+    <li>跑的过程里<b>有报错、警告、异常输出</b>吗？有的话，写出来了吗？</li>
+    <li>有没有哪部分我<b>其实没验证</b>？标出来了吗？</li>
+    <li>我说的「成功」，<b>有屏幕上的证据</b>吗（命令输出 / 页面截图 / 文件内容）？</li>
+  </ol>
+  <p class="his">四条里任何一条答不上来，就不是「做完了」，是「还没验证」。</p>
+</div>
+<p><b>为什么改完更管用：</b>含糊的要求，AI 可以自己解释；<b>能打勾的清单，没法糊弄。</b>
+这不是「把话说得更好听」，是把<b>标准</b>从形容词改成了检查项。</p>
+
+<div class="note">
+  <b>另外两个备选例子（想换就换）：</b><br>
+  <b>例 B ｜报 bug 时带上证据。</b>「页面打不开了，你看看」→ 改成「为啥一直在加载？」<b>+ 一张截图</b>。
+  就多了那张截图，一眼看出「同步时间显示了、内容没出来」这个矛盾 → 直接指向渲染，而不是网络。<br>
+  <b>例 C ｜把「记得提交」写成固定格式。</b>「做完记得提交」→ 改成
+  「commit 标题：<code>Day 20｜一句话</code>；说明两行：改了什么 / 加了什么」。
+  约束越具体，产出越稳定 —— 六周以来每天的提交记录长得一模一样。
+</div>
+
+<!-- ============ ④ ============ -->
+<h2>④ 验证方式<span class="tm">45 秒 · 我凭什么说它对</span></h2>
+
+<p>四层，<b>从弱到强</b>。演示时按这个顺序说，重点落在最后两层。</p>
+
+<div class="ladder">
+  <div class="row">
+    <div class="lv">第 1 层 · 脚本</div>
+    <div class="bd">四套自检，一共 <b>55 + 44 + 33 + 11 = 143 项</b>，每次改完都重跑。
+      覆盖：读接口、写接口、边界（缺字段 / 格式错 / 重复）、线上文件是否与本地一致。</div>
+  </div>
+  <div class="row">
+    <div class="lv">第 2 层 · 真浏览器</div>
+    <div class="bd">脚本只能看「文件里写了什么」，看不了「跑起来对不对」。
+      所以还要在真浏览器里看两件事：<b>控制台有没有报错</b>、<b>界面上有没有真渲染出内容</b>。</div>
+  </div>
+  <div class="row strong">
+    <div class="lv">第 3 层 · 换个角度复核</div>
+    <div class="bd"><b>不信脚本自己打印的「通过」</b>，换一条路再查一遍：
+      不信删干净了 → 就直接问接口要数据；不信推送成功了 → 就用 API 查远端。<br>
+      <b>为什么必须有这层</b>：这一周亲眼见过「命令跑了但没生效」—— 上传报成功、文件却传到了歪目录。</div>
+  </div>
+  <div class="row strong">
+    <div class="lv">第 4 层 · 换人换设备</div>
+    <div class="bd">我自己测出来的全部结论，前提都是「我装了环境、我知道该点哪儿」。
+      <b>换一个没碰过它的人、用他自己的手机</b>，还能打开 / 还能加进去 / 没有报错 —— 这才叫成立。</div>
+  </div>
+</div>
+
+<h3>收尾要说的两句话</h3>
+<ul>
+  <li><b class="hi">「文件传对了」≠「代码能跑」。</b>
+      这一周真的踩过：33 项静态检查全绿，页面却是一片空白 —— 因为<b>没有一项真的执行过那个渲染函数</b>。</li>
+  <li><b class="hi">「命令跑了」≠「命令生效了」。</b>
+      退出码 0 不代表事办成了。唯一的办法是<b>从另一个角度独立查一遍</b>。</li>
+</ul>
+
+<div class="note">
+  <b>已知没做到的（别人问起就直说，别绕）：</b>编辑 / 删除现在会报错 ——
+  那两个接口排在第 4 周，前端已经按契约写好、等接口上线就通。
+  这一条我在周验收表里<b>主动标成了 FAIL</b>，没有写成"不适用"。
+</div>
+
+<!-- ============ 时间表 ============ -->
+<h2>附｜3 分钟时间表</h2>
+<table>
+  <thead><tr><th>时间</th><th>在做什么</th><th>卡点提醒</th></tr></thead>
+  <tbody>
+    <tr><td>0:00 – 0:30</td><td>① 用户问题 —— 用开场那句提问，别念定义</td><td>别超过 30 秒，这段的目的是勾住人，不是讲全</td></tr>
+    <tr><td>0:30 – 1:30</td><td>② 核心流程 —— 真操作，边做边说</td><td>日期必须是本周内；`F5` 那一下要停半秒让人看清</td></tr>
+    <tr><td>1:30 – 2:15</td><td>③ 提示词改写 —— 只讲一个例子</td><td>一定要把「第一遍怎么说的」原样说出来，对比才成立</td></tr>
+    <tr><td>2:15 – 3:00</td><td>④ 验证方式 —— 四层，重点在后两层</td><td>最后落在那两句「≠」，这是全场最值钱的一段</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  <span>Day 21 · 演示提纲 ｜ 四段结构：用户问题 → 核心流程 → 提示词改写 → 验证方式</span>
+  <span>走通记录：2026-10-12 00:47 已按本提纲在公网地址完整走通一遍</span>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 21 · 第 3 周验收表 · 这一周</title>
+<style>
+  :root{
+    --ink:#1a1d21; --ink-2:#4a4f57; --ink-3:#7a8189;
+    --line:#e3e6ea; --line-2:#f0f2f5; --bg:#ffffff; --bg-soft:#f7f8fa;
+    --ok-ink:#0b6b34; --ok-bg:#e8f6ed; --ok-line:#b6e0c6;
+    --fail-ink:#a8231a; --fail-bg:#fdecea; --fail-line:#f2c3bd;
+    --warn-ink:#8a5300; --warn-bg:#fff5e3; --warn-line:#f0d9ab;
+    --todo-ink:#3c4a8a; --todo-bg:#eef1fd; --todo-line:#c8d0f0;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px 28px 56px; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:14px; line-height:1.6;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:22px}
+  h1{margin:0 0 6px;font-size:23px;letter-spacing:.01em}
+  .meta{color:var(--ink-3);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .goal{margin:14px 0 0;padding:12px 14px;background:var(--bg-soft);border-left:3px solid var(--ink);
+        font-size:13.5px;color:var(--ink-2);border-radius:0 6px 6px 0}
+  .goal b{color:var(--ink)}
+
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 26px}
+  .chip{display:flex;align-items:baseline;gap:7px;padding:9px 14px;border-radius:8px;
+        border:1px solid var(--line);background:var(--bg-soft);font-size:13px}
+  .chip .n{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+  .chip.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-ink)}
+  .chip.fail{background:var(--fail-bg);border-color:var(--fail-line);color:var(--fail-ink)}
+  .chip.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink)}
+  .chip.todo{background:var(--todo-bg);border-color:var(--todo-line);color:var(--todo-ink)}
+
+  h2{font-size:15px;margin:30px 0 10px;padding-left:9px;border-left:4px solid var(--ink);
+     display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+  h2 .sub{font-size:12px;font-weight:400;color:var(--ink-3)}
+  h2.danger{border-left-color:var(--fail-ink)}
+  h2.danger + table th{background:#fdf3f2}
+
+  table{width:100%;border-collapse:collapse;margin:0 0 4px;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg-soft);font-weight:600;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+  td.id{white-space:nowrap;font-weight:600;color:var(--ink-2);width:52px;font-variant-numeric:tabular-nums}
+  td.st{white-space:nowrap;width:96px}
+  td.ev{font-size:12.5px;color:var(--ink-2)}
+  tr.hit td{background:#fcfdfc}
+
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;
+        white-space:nowrap;border:1px solid transparent}
+  .p-ok{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-line)}
+  .p-fail{background:var(--fail-bg);color:var(--fail-ink);border-color:var(--fail-line)}
+  .p-warn{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-line)}
+  .p-todo{background:var(--todo-bg);color:var(--todo-ink);border-color:var(--todo-line)}
+
+  a{color:#1554c0;text-decoration:underline;text-underline-offset:2px}
+  code{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:12px;
+       background:var(--bg-soft);border:1px solid var(--line-2);border-radius:4px;padding:1px 5px}
+  .today{display:inline-block;font-size:11px;font-weight:700;color:var(--ok-ink);
+         background:var(--ok-bg);border:1px solid var(--ok-line);border-radius:4px;
+         padding:0 5px;margin-left:5px;vertical-align:1px;letter-spacing:.02em}
+  .why{display:block;color:var(--ink-3);font-size:12px;margin-top:3px}
+
+  .note{margin:14px 0 0;padding:11px 14px;border-radius:7px;font-size:12.5px;line-height:1.65}
+  .note.fail{background:var(--fail-bg);border:1px solid var(--fail-line);color:#6d1a13}
+  .note.warn{background:var(--warn-bg);border:1px solid var(--warn-line);color:#6b4200}
+
+  .reflect{margin-top:34px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .reflect .rt{background:var(--ink);color:#fff;padding:9px 15px;font-size:13px;font-weight:600}
+  .reflect .rb{padding:15px}
+  .reflect dl{margin:0}
+  .reflect dt{font-size:12px;color:var(--ink-3);font-weight:600;letter-spacing:.02em}
+  .reflect dd{margin:4px 0 16px;font-size:14px}
+  .reflect dd:last-child{margin-bottom:0}
+  .reflect .quote{border-left:3px solid var(--line);padding-left:11px;color:var(--ink-2)}
+
+  footer{margin-top:34px;padding-top:13px;border-top:1px solid var(--line);
+         color:var(--ink-3);font-size:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>第 3 周验收表 · 「这一周」课表与 DDL 助手</h1>
+  <div class="meta">
+    Day 21 · 2026-10-11 ｜ 覆盖 Day 15 – Day 21（上云这一周）<br>
+    CloudBase 环境 <code>my-first-site-d0g3re4p71560e327</code> ｜ 判定只有「是 / 否」，带主观词的项一律不收
+  </div>
+  <p class="goal">
+    <b>这一周的目标：</b>把产品从「数据只躺在这台电脑的浏览器里」，
+    变成「<b>一个发给同学、他打开就看得见真数据、也写得进去的公网地址</b>」。
+  </p>
+</header>
+
+<div class="summary">
+  <div class="chip ok"><span class="n">19</span> 已验（有证据）</div>
+  <div class="chip fail"><span class="n">5</span> FAIL（如实标）</div>
+  <div class="chip warn"><span class="n">1</span> 部分</div>
+  <div class="chip todo"><span class="n">3</span> 未执行（如实标）</div>
+</div>
+
+<h2>A｜公网可访问<span class="sub">Day 15 / Day 20</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项（只能答是 / 否）</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr class="hit">
+    <td class="id">A1</td>
+    <td>打开公网地址，不用登录、不用装任何东西，直接看到一周视图</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html" target="_blank">公网首页</a></td>
+  </tr>
+  <tr class="hit">
+    <td class="id">A2</td>
+    <td>首页返回的是我自己的页面，不是腾讯云警告页、也不是白屏</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day20.js">check-day20.js</a> C11 / C12<span class="today">今日实测 33/33</span></td>
+  </tr>
+  <tr>
+    <td class="id">A3</td>
+    <td>手机浏览器能打开，并能「加到主屏」当 App 用</td>
+    <td class="st"><span class="pill p-warn">部分</span></td>
+    <td class="ev"><a href="../../manifest.json">manifest.json</a> + <a href="../../day14-usertest.md">Day 14 实测</a> 验过
+      <span class="why">⚠️ 第 3 周改成云数据后，没在真机上重测过 —— 周五改的是数据来源，没动 PWA 那套</span></td>
+  </tr>
+  <tr>
+    <td class="id">A4</td>
+    <td>默认域名打开时没有强制中间页</td>
+    <td class="st"><span class="pill p-fail">否</span></td>
+    <td class="ev"><a href="../../day15-deploy.md">day15-deploy.md</a> 第 5 节
+      <span class="why">腾讯云对未备案测试域名强制弹「确定访问」，官方写明关不掉。唯一合规办法是买域名 + ICP 备案（1–2 周）—— 本期接受</span></td>
+  </tr>
+  </tbody>
+</table>
+
+<h2>B｜真数据（读）<span class="sub">Day 16 / Day 17 / Day 20</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr class="hit">
+    <td class="id">B1</td>
+    <td>页面上的课程和 DDL 来自云数据库，不是写在代码里的</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../day20/交付说明.md">docs/day20/交付说明.md</a> 第 3 节（<code>store.js</code> 内部换成调接口）</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">B2</td>
+    <td>在数据库里改一条记录，刷新页面就跟着变</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../day20/交付说明.md">docs/day20/交付说明.md</a> 第 7 节 ——「四教 305」↔「四教 888」来回改，页面两次都跟着变</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">B3</td>
+    <td>库里就是「页面上要什么它就有什么」，不是空壳</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/courses" target="_blank">GET /api/courses</a> = 10 门课；
+      <a href="https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.com/api/ddls" target="_blank">GET /api/ddls</a> = 10 条<span class="today">今日实测</span></td>
+  </tr>
+  <tr class="hit">
+    <td class="id">B4</td>
+    <td>读接口公网 200、中文不乱码、排序正确（同学按时间）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day17.js">check-day17.js</a>（55 项）<span class="today">今日实测 55/55</span></td>
+  </tr>
+  </tbody>
+</table>
+
+<h2>C｜真写入<span class="sub">Day 18</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr class="hit">
+    <td class="id">C1</td>
+    <td>从页面新增一门课，它真的躺进数据库（不是只改屏幕上）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day18.js">check-day18.js</a>（44 项）<span class="today">今日实测 44/44</span></td>
+  </tr>
+  <tr class="hit">
+    <td class="id">C2</td>
+    <td>从页面新增一条 DDL，同样真的落库</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day18.js">check-day18.js</a> 【H】组 —— DDL 对称走一遍</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">C3</td>
+    <td>脏数据被挡住，并且给的是中文提示（不是 500、不是英文报错）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day18.js">check-day18.js</a> 【F】【G】组 —— 缺字段 / 星期几写成文字 / 时间格式错 / 结束早于开始 / body 不是 JSON</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">C4</td>
+    <td>同一条内容重复提交，不会被写进去两遍</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day18.js">check-day18.js</a> —— 三层防重复（id 冲突 / 内容查重 / 数据库唯一约束）→ 409</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">C5</td>
+    <td>验证完不留垃圾数据（跑测试不能把库搞脏）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev">今日跑完 <a href="../../db/cleanup-day18.sql">db/cleanup-day18.sql</a>，
+      <b>换个角度独立核对</b>：接口查回 10 门课 / 10 条 DDL、残留测试行 0<span class="today">今日实测</span></td>
+  </tr>
+  </tbody>
+</table>
+<p class="note warn">
+  <b>🧪 排查记录（2026-10-12 00:44 结案）——「保存报失败、数据其实进去了」是假警报。</b><br>
+  走查时发现：在公网页面点一次「保存」，界面报「保存失败：这条 DDL 已经记过了」，
+  <b>但库里确实多了一行</b>。这是最坏的一类现象（界面说不成功、事实说成功），所以当场停下查。<br>
+  <b>结论：不是产品的问题，是我的自动化工具自己造成的。</b>证据链 ——
+  ① 同一接口用 Node 直连（含带 id 的请求体）稳定返回 200 并正确入库；
+  ② HAR 抓包显示整个会话里<b>只有 1 个 POST</b>，且它确实返回 409（说明客户端没有重复提交）；
+  ③ 库里那一行的 <code>id</code> 与那个 POST 的 <code>id</code> <b>对不上</b>，且创建时间更早 ——
+     说明另有<b>另一个浏览器页面</b>在发请求；
+  ④ 清掉残留的自动化浏览器进程后重跑：<b>一次点击 = 一个 POST = 200</b>，
+     提示条显示「已保存」，库里那行的 id 与请求里的 id <b>完全一致</b>。<br>
+  根因：前面几轮排查时用了后台方式反复开浏览器，<b>旧会话没被清干净</b>，两个页面各提交了一次 → 一次成功、一次 409。<br>
+  <b>又一次「先怀疑测量工具，再怀疑被测对象」</b> —— 这一周第三次了。
+  → 顺带记进待办：以后跑浏览器自动化，开之前先 `close --all` 并确认残留进程为 0。
+</p>
+
+<h2 class="danger">D｜编辑 / 删除 —— 今天要如实标的缺项<span class="sub">第 4 周才做</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr>
+    <td class="id">D1</td>
+    <td>录错了能改 —— 编辑一门课（改时间 / 教室）</td>
+    <td class="st"><span class="pill p-fail">FAIL</span></td>
+    <td class="ev"><a href="../../api-contract.md">api-contract.md</a> 里的 <code>PATCH /api/courses/:id</code> 还没实现
+      <span class="why">前端早已按契约写好（<code>store.js</code> 的 <code>updateCourse</code>），现在点下去拿 404。不是坏，是还没做</span></td>
+  </tr>
+  <tr>
+    <td class="id">D2</td>
+    <td>删除一条记录前先弹确认，点「取消」数据还在</td>
+    <td class="st"><span class="pill p-fail">FAIL</span></td>
+    <td class="ev"><a href="../../PRD.md">PRD.md</a> 第 7.1 节 <b>A7</b> —— <code>DELETE</code> 未实现
+      <span class="why">PRD 里写着「应满足」，现在是实实在在没过。第 4 周补</span></td>
+  </tr>
+  <tr>
+    <td class="id">D3</td>
+    <td>编辑一条 DDL</td>
+    <td class="st"><span class="pill p-fail">FAIL</span></td>
+    <td class="ev">同 D1 —— <code>PATCH /api/ddls/:id</code> 未实现</td>
+  </tr>
+  <tr>
+    <td class="id">D4</td>
+    <td>删除一条 DDL</td>
+    <td class="st"><span class="pill p-fail">FAIL</span></td>
+    <td class="ev">同 D2 —— <code>DELETE /api/ddls/:id</code> 未实现</td>
+  </tr>
+  </tbody>
+</table>
+<p class="note fail">
+  <b>这 4 条是我主动标出来的，不是漏掉的。</b>
+  第 3 周的任务范围是「上云 + 真读写」，<code>PATCH</code> / <code>DELETE</code> 本来排在<b>第 4 周</b>。
+  但 PRD 第 7.1 节 A7 把它写成了验收标准 —— 那么它现在<b>就是没达成</b>，
+  不能因为「本来就没排」就写「不适用」。<b>标记的价值在于知道自己欠什么。</b>
+</p>
+
+<h2>E｜接口契约与工程<span class="sub">Day 19 / Day 20</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr class="hit">
+    <td class="id">E1</td>
+    <td>已实现的 4 个接口与契约逐字一致（路径 / 字段名 / 错误码）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../api-contract.md">api-contract.md</a> + <a href="../../check-day17.js">check-day17.js</a> / <a href="../../check-day18.js">check-day18.js</a> 的字段与错误码断言</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">E2</td>
+    <td>分层干净：只有 <code>store.js</code> 知道数据从哪来</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day20.js">check-day20.js</a> B10 / B11 —— <code>app.js</code> 里没有 <code>API_BASE</code>、也没有 <code>fetch</code></td>
+  </tr>
+  <tr class="hit">
+    <td class="id">E3</td>
+    <td>8 个函数签名与当初一模一样，视图层一行没改</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../day20/交付说明.md">docs/day20/交付说明.md</a> 第 3 节 —— 换数据来源，<code>app.js</code> 零改动</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">E4</td>
+    <td>密钥不进仓库（且有钩子拦着，不靠自觉）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../scripts/check-no-secrets.sh">scripts/check-no-secrets.sh</a> —— 已装成 pre-commit 钩子</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">E5</td>
+    <td>页面跑起来控制台没有报错</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day20-render.js">check-day20-render.js</a>（11 项，真跑 <code>render()</code>）<span class="today">今日实测 11/11</span></td>
+  </tr>
+  <tr class="hit">
+    <td class="id">E6</td>
+    <td>「文件传对了 ≠ 代码能跑」—— 这个盲区现在有工具兜底</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../../check-day20-render.js">check-day20-render.js</a> 带<b>自证环节</b>：故意把代码改坏，脚本必须报红才算它有效<span class="today">今日实测：抓到 <code>ddls is not defined</code></span></td>
+  </tr>
+  </tbody>
+</table>
+
+<h2>F｜同伴交叉验证<span class="sub">未执行 —— 如实标，不假装做了</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr>
+    <td class="id">F1</td>
+    <td>同伴在自己的设备上能打开</td>
+    <td class="st"><span class="pill p-todo">未执行</span></td>
+    <td class="ev"><a href="../day21/同伴交叉验证.md">docs/day21/同伴交叉验证.md</a> —— 转发文案已备好，<b>还没找到人执行</b></td>
+  </tr>
+  <tr>
+    <td class="id">F2</td>
+    <td>同伴能加进去一条记录（可读也可写）</td>
+    <td class="st"><span class="pill p-todo">未执行</span></td>
+    <td class="ev">同上</td>
+  </tr>
+  <tr>
+    <td class="id">F3</td>
+    <td>同伴那边没有报错</td>
+    <td class="st"><span class="pill p-todo">未执行</span></td>
+    <td class="ev">同上</td>
+  </tr>
+  </tbody>
+</table>
+<p class="note warn">
+  <b>⚠️ 第 3 周在这里留了一个洞，说清楚：</b>
+  这一周所有的「能打开、能读写」都是<b>我在这台电脑上</b>测的 —— 我装了环境、知道该点哪儿。
+  <b>换一个人、换一台设备还成不成立，这件事第 3 周没有验过。</b><br>
+  按清单的降级要求：<b>优先保住「公网可访问 + 真实读写」，其余如实标「未执行」</b> ——
+  所以这里写的是「未执行」，<b>不是「不适用」，也不是「通过」</b>。
+  转发文案已经写好放在 <a href="../day21/同伴交叉验证.md">同伴交叉验证.md</a>，找到人随时能补。
+</p>
+
+<h2>G｜演示提纲<span class="sub">今日板块④</span></h2>
+<table>
+  <thead><tr><th>#</th><th>验收项</th><th>判定</th><th>证据</th></tr></thead>
+  <tbody>
+  <tr class="hit">
+    <td class="id">G1</td>
+    <td>提纲四段写出：用户问题 → 核心流程 → 提示词改写 → 验证方式</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../day21/演示提纲.html">docs/day21/演示提纲.html</a> —— 四段齐全，另附 3 分钟时间表</td>
+  </tr>
+  <tr class="hit">
+    <td class="id">G2</td>
+    <td>提纲完整走通一遍（每一步都真的走得通）</td>
+    <td class="st"><span class="pill p-ok">是</span></td>
+    <td class="ev"><a href="../day21/04-演示走通-保存成功.png">04-演示走通-保存成功.png</a> —— 2026-10-12 00:47
+      在<b>公网地址</b>上走通：过提示页 → 记一条 DDL → 提示条「✓ 已保存」→ 落在<b>周六 10/17</b> 那一列
+      <span class="why">截图里 周六 从「没有安排」变成新增的那条；同时录到 toast 文字「已保存：演示走通-待删」</span></td>
+  </tr>
+  </tbody>
+</table>
+
+<div class="reflect">
+  <div class="rt">本周复盘 · 清单问的那句：这周最花时间的是哪一步？你觉得值吗？</div>
+  <div class="rb">
+    <dl>
+      <dt>最花时间的一步</dt>
+      <dd>交付之后，去抓那个「页面一直卡在骨架屏」的 bug。</dd>
+      <dt>值吗</dt>
+      <dd class="quote">
+        「值。因为能让用户体验更好一点 —— 不然到时候那屏都刷不出来，挺难受的。」
+      </dd>
+      <dt>为什么这一步最花时间（事实部分）</dt>
+      <dd style="font-size:13px;color:var(--ink-2)">
+        三层静态自检 33 项全绿，页面却是空的 —— 因为<b>没有一项真的执行过 <code>render()</code></b>。
+        最后靠真浏览器拿到控制台那一行 <code>ReferenceError: ddls is not defined</code> 才定位到。
+        代价换来的东西：<a href="../../check-day20-render.js">check-day20-render.js</a> 这 11 项运行时自检，以及上面 E6 那条。
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<footer>
+  <span>Day 21 · 第 3 周验收表 ｜ 全部判定基于 2026-10-11 现场实测，不引用往日结论</span>
+  <span>判定项 28 条：19 是 · 5 FAIL · 1 部分 · 3 未执行</span>
+</footer>
+
+</div>
+</body>
+</html>
