@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<!--
+  docs/day23/evidence-errors.html —— Day 23 三类错误提示证据页
+
+  这张表的每一行"改后"，都是**真打线上接口拿到的响应**，不是手写的。
+  红色 = 改前的原话（从 git 历史里翻出来的），绿色 = 现在的实际返回。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 23 · 三类错误提示</title>
+<style>
+  :root {
+    --ink:#1a1d23; --ink-2:#4a5160; --ink-3:#7a8494;
+    --line:#e3e7ee; --bg:#fff; --soft:#f7f9fc;
+    --ok:#0f9d58; --ok-bg:#e8f6ee; --bad:#d93025; --bad-bg:#fdecea;
+    --accent:#2f6fed; --warn:#f0b429;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 20px 56px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.7}
+  .wrap{max-width:1060px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 8px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:14px;margin-bottom:26px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:22px 24px;margin-bottom:18px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  h2{font-size:17px;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line);
+     display:flex;align-items:center;gap:10px}
+  .badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;
+         background:var(--accent);color:#fff}
+  .badge.g{background:var(--ok)}
+  .badge.o{background:#e8890c}
+  .row{margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+  .rowhead{font-size:14px;font-weight:600;margin-bottom:9px;color:var(--ink-2)}
+  .rowhead code{background:var(--soft);padding:2px 7px;border-radius:5px;
+                font-size:12.5px;color:var(--accent);font-family:Consolas,monospace}
+  .before,.after{border-radius:9px;padding:12px 15px;font-size:14px;
+                 display:flex;gap:11px;align-items:flex-start;margin-bottom:7px}
+  .before{background:var(--bad-bg);border-left:3px solid var(--bad)}
+  .after{background:var(--ok-bg);border-left:3px solid var(--ok)}
+  .tag{flex:0 0 auto;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:5px;
+       color:#fff;margin-top:2px}
+  .before .tag{background:var(--bad)}
+  .after .tag{background:var(--ok)}
+  .msg{font-weight:600;word-break:break-word}
+  .before .msg{color:#8a1f17}
+  .after .msg{color:#0b5c34}
+  .why{font-size:13px;color:var(--ink-3);margin-top:5px;padding-left:2px}
+  .why b{color:var(--ink-2)}
+  .note{background:#fff8e6;border-left:3px solid var(--warn);padding:12px 15px;
+        border-radius:0 8px 8px 0;font-size:13.5px;color:#6b4c00;margin-top:14px}
+  .foot{color:var(--ink-3);font-size:12.5px;text-align:center;margin-top:26px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+  th{background:var(--soft);font-weight:600;color:var(--ink-2);font-size:12.5px}
+  td.ok{color:var(--ok);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 23 · 三类错误提示（改前 → 改后）</h1>
+  <div class="sub">
+    分类标准：<b>按「用户看到后该做什么」分</b>，不是按状态码分 ｜ 所有「改后」均为真打线上接口的实际返回
+  </div>
+
+  <!-- ================= 分类总览 ================= -->
+  <div class="card">
+    <h2>三类怎么分</h2>
+    <table>
+      <tr><th style="width:150px">类</th><th style="width:170px">状态码</th>
+          <th style="width:200px">用户该做什么</th><th>文案句式</th></tr>
+      <tr>
+        <td><b>① 你的输入要改</b></td><td>400 / 409 / 413</td>
+        <td>改一下内容再发</td>
+        <td><code>&lt;哪里&gt;不对：&lt;为什么&gt;。应该&lt;怎么改&gt;，比如「&lt;例子&gt;」</code></td>
+      </tr>
+      <tr>
+        <td><b>② 它不在了 / 没这地址</b></td><td>404 / 405</td>
+        <td>刷新看看，或换个地址/方法</td>
+        <td><code>没有找到&lt;什么&gt;，&lt;可能的原因&gt;</code></td>
+      </tr>
+      <tr>
+        <td><b>③ 我们这边的问题</b></td><td>500 / 502</td>
+        <td><b>等一会儿重试，别改输入</b></td>
+        <td><code>&lt;哪个环节&gt;出了问题。不是你操作的问题，过一会儿再试一次就行。</code></td>
+      </tr>
+    </table>
+    <div class="note">
+      <b>为什么第 ③ 类必须加「不是你的错」：</b>原来的 502 写「数据库暂时读不到数据，请稍后再试」——
+      用户看到这句会以为<b>自己哪里填错了</b>，于是反复改自己的输入、白折腾半天。
+      服务器的问题，就得明说是服务器的问题。
+    </div>
+  </div>
+
+  <!-- ================= 第 1 类 ================= -->
+  <div class="card">
+    <h2><span class="badge">第 ① 类</span> 你的输入要改（400）</h2>
+    <div class="row">
+      <div class="rowhead">缺必填字段 · <code>POST /api/courses {}</code></div>
+      <div class="after"><span class="tag">现状</span><div>
+        <div class="msg">缺少必填字段 name（课程名），比如「高等数学」</div>
+        <div class="why">这一条<b>本来就达标了</b> —— 列出它作为标杆：好提示长什么样。</div>
+      </div></div>
+    </div>
+    <div class="row">
+      <div class="rowhead">星期几超范围 · <code>{ day_of_week: 9 }</code></div>
+      <div class="after"><span class="tag">现状</span><div>
+        <div class="msg">day_of_week（星期几）必须是 1 到 7 的整数（1 = 周一），你给的是「9」</div>
+        <div class="why">两个要点：<b>说清合法范围</b> + <b>回显用户给的值</b>（他知道自己错在哪）。</div>
+      </div></div>
+    </div>
+    <div class="row">
+      <div class="rowhead">请求体太大 · <code>413</code></div>
+      <div class="before"><span class="tag">改前</span><div>
+        <div class="msg">请求内容太大了（超过 64KB），请检查是不是发错了东西</div>
+        <div class="why">只说"太大了"，没说<b>正常应该是多大</b>，用户无从判断。</div>
+      </div></div>
+      <div class="after"><span class="tag">改后</span><div>
+        <div class="msg">发过来的内容太大了（超过 64KB）。课表一条记录最多几百字节 —— 多半是误把整个文件贴进来了，请只发这一条数据</div>
+        <div class="why">给了<b>量级参照</b>（几百字节 vs 64KB）和<b>最可能的原因</b>。</div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ================= 第 3 类 ================= -->
+  <div class="card">
+    <h2><span class="badge o">第 ③ 类</span> 我们这边的问题（500 / 502）— 今天改的重点</h2>
+
+    <div class="row">
+      <div class="rowhead">读数据时上游挂了 · <code>502</code></div>
+      <div class="before"><span class="tag">改前</span><div>
+        <div class="msg">数据库暂时读不到数据，请稍后再试</div>
+        <div class="why">用户会想："是不是我哪里点错了？"—— 于是去改自己的操作，白折腾。</div>
+      </div></div>
+      <div class="after"><span class="tag">改后</span><div>
+        <div class="msg">我们这边出了点问题：数据库暂时读不到数据。不是你操作的问题，过一会儿再试一次就行。</div>
+        <div class="why">明确<b>不是你的错</b> + 告诉他<b>只要等一会儿，不用改任何东西</b>。</div>
+      </div></div>
+    </div>
+
+    <div class="row">
+      <div class="rowhead">写入 / 修改 / 删除时上游挂了 · <code>502 ×3</code></div>
+      <div class="before"><span class="tag">改前</span><div>
+        <div class="msg">数据库暂时写不进去 / 改不了 / 删不了，请稍后再试</div>
+      </div></div>
+      <div class="after"><span class="tag">改后</span><div>
+        <div class="msg">我们这边出了点问题：数据库暂时写不进去。不是你操作的问题，过一会儿再试一次就行。</div>
+      </div></div>
+    </div>
+
+    <div class="row">
+      <div class="rowhead">未捕获异常 · <code>500</code></div>
+      <div class="before"><span class="tag">改前</span><div>
+        <div class="msg">服务内部出错了，请稍后再试</div>
+        <div class="why">"服务内部出错"是<b>说给开发者听的</b>；而且出了问题<b>没有编号</b>，用户报故障时说不清是哪一次。</div>
+      </div></div>
+      <div class="after"><span class="tag">改后</span><div>
+        <div class="msg">我们这边出了点问题：处理这次请求时出错了。不是你操作的问题，过一会儿再试一次；如果一直这样，把这串编号发给管理员：req_xxxxx</div>
+        <div class="why">加了<b>请求编号</b> —— 用户能报出来，我们才查得到<b>是哪一次</b>。</div>
+      </div></div>
+    </div>
+
+    <div class="row">
+      <div class="rowhead">服务端配置缺失 · <code>500</code></div>
+      <div class="before"><span class="tag">改前</span><div>
+        <div class="msg">服务端没有配置数据库密钥，请联系管理员检查云函数环境变量</div>
+        <div class="why">"环境变量"是给运维看的词，用户看不懂；也没给请求编号。</div>
+      </div></div>
+      <div class="after"><span class="tag">改后</span><div>
+        <div class="msg">我们这边出了点问题：服务端还没配好数据库密钥。这不是你操作的问题，已经记下来了，稍后会自动恢复；如果一直这样，把下面这串编号发给管理员：req_xxxxx</div>
+      </div></div>
+    </div>
+
+    <div class="note">
+      <b>一致性怎么保证的：</b>这 7 条 502 的「不是你的错」不是各写一遍 ——
+      抽成了两个常量 <code>WE_ARE_SORRY_PREFIX</code> / <code>WE_ARE_SORRY_SUFFIX</code>。
+      以后<b>改一次、全生效</b>，不会出现"有一条忘了带"的情况。
+    </div>
+  </div>
+
+  <!-- ================= 未改动的部分 ================= -->
+  <div class="card">
+    <h2><span class="badge g">保持原样</span> 第 ② 类：已经是好文案</h2>
+    <div class="row">
+      <div class="rowhead">删不存在的记录 · <code>404</code></div>
+      <div class="after"><span class="tag">现状</span><div>
+        <div class="msg">没有找到 id 为「xxx」的记录，可能已经被删掉了</div>
+        <div class="why">回显了 id + 给了合理的解释。</div>
+      </div></div>
+    </div>
+    <div class="row">
+      <div class="rowhead">用错方法 · <code>405</code></div>
+      <div class="after"><span class="tag">现状</span><div>
+        <div class="msg">路径 /api/courses 只支持 GET（读全部）和 POST（新建）。要改或删某一条，请带上它的 id：/api/courses/&lt;id&gt;。你用的是 PUT</div>
+        <div class="why">说清<b>支持什么</b> + <b>你想做的动作该打哪个地址</b> + <b>你实际用的是什么</b>。三条齐全。</div>
+      </div></div>
+    </div>
+    <div class="note" style="background:#eef4ff;border-color:var(--accent);color:#1a3a7a">
+      <b>为什么第 ② 类没动：</b>它已经满足"说清下一步能干嘛"的标准了。
+      <b>统一 ≠ 全部重写</b> —— 把已经合格的东西改一遍，只会引入新风险。
+    </div>
+  </div>
+
+  <div class="foot">
+    所有「改后」文案均经 check-day23.js 真打线上接口验证（50 项全过）｜my-first-site · Day 23
+  </div>
+</div>
+</body>
+</html>

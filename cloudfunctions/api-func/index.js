@@ -80,7 +80,7 @@ const db = require('./db');
 const PORT = 9000;
 
 // Day 19：拆出数据访问层（0.3.0 → 0.4.0）。Day 22：补上 PATCH / DELETE（→ 0.5.0）。
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 // 请求体上限。课表一条记录最多几百字节，64KB 绰绰有余。
 // 设上限是为了防止有人发个巨大请求把内存撑爆（一种最朴素的攻击）。
@@ -138,6 +138,25 @@ const ROUTES = {
 const WEEKDAY = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
 // ---------------------------------------------------------------------
+// 第 3 类错误（我们这边的问题）的固定前缀 —— Day 23
+//
+// 为什么抽成常量而不是每条各写一遍：
+//   这 7 条 502 的"共同部分"是**最重要的一句** ——
+//   「不是你的错，别去改自己的输入」。
+//   散着写，早晚有一条忘了带这句，而用户正好撞上那一条。
+//   放在一处，改一次全生效。
+//
+// 拼出来的完整话是：
+//   "我们这边出了点问题：数据库暂时读不到数据。不是你操作的问题，过一会儿再试一次就行。"
+//   └─ 第 3 类统一前缀 ─┘└─ 各条的具体环节 ─┘└─ 第 3 类统一后缀 ──────────────┘
+// ---------------------------------------------------------------------
+const WE_ARE_SORRY_PREFIX = '我们这边出了点问题：';
+const WE_ARE_SORRY_SUFFIX = '不是你操作的问题，过一会儿再试一次就行。';
+function ourFault(what) {
+  return WE_ARE_SORRY_PREFIX + what + '。' + WE_ARE_SORRY_SUFFIX;
+}
+
+// ---------------------------------------------------------------------
 // 统一的响应信封（契约第 2.3 节）
 //
 // 成功：{ ok: true,  data: ..., requestId }
@@ -162,6 +181,39 @@ function sendErr(res, httpStatus, code, message, requestId) {
   });
   res.end(JSON.stringify({ ok: false, error: { code, message }, requestId }));
 }
+
+// =====================================================================
+// 三类错误提示的统一约定（Day 23）
+// =====================================================================
+//
+// 为什么要"统一"：
+//   写提示的时候，人容易只想着"我这边发生了什么"，
+//   于是写出「502 数据库读不到数据」这种**说给自己听**的话。
+//   用户看到它只会更慌 —— 他不知道 502 是什么，也不知道该不该动自己的输入。
+//
+// 🔑 统一的分法：**按「用户看到后该做什么」分三类**，不是按状态码分。
+//    状态码是给机器看的，分类是给文案定的规矩。
+//
+//   ┌─ 第 1 类 · 你的输入要改（400 / 409 / 413）
+//   │    用户动作：改一下内容再发。
+//   │    句式：「<哪里> 不对：<为什么>。应该 <怎么改>，比如「<例子>」」
+//   │    硬要求：**给出一个具体例子**。只写"格式不对"等于没说。
+//   │    已达标项（举例）：'缺少必填字段 name（课程名），比如「高等数学」'
+//   │
+//   ├─ 第 2 类 · 它不在了 / 没这个地址（404 / 405）
+//   │    用户动作：刷新看看，或者换个地址/换个方法。
+//   │    句式：「没有找到 <什么>，<可能的原因>」
+//   │    要点：**说下一步能干嘛**，不能让用户卡在原地。
+//   │
+//   └─ 第 3 类 · 我们这边的问题，不是你的错（500 / 502）
+//        用户动作：等一会儿重试。**不要改任何输入**。
+//        句式：「<我们这边的哪个环节> 出了问题。这不是你操作的问题，<等多久> 再试一次。」
+//        ⚠️ 这一类最容易写歪 —— 必须显式地说「不是你的错」。
+//          否则用户会把 502 当成"我填错了"，反复改自己的输入，白折腾。
+//
+// 另有一条纪律：**给用户的 message 里不出现英文技术词**（502、upstream、
+//   timeout 这些一律不露），详细原因写进 console.error 留给开发者看。
+// =====================================================================
 
 // ---------------------------------------------------------------------
 // 请求 ID：每次请求给个唯一编号
@@ -373,7 +425,7 @@ async function handleGet(res, route, pathname, requestId) {
 
   if (!result.ok) {
     // 上游的错误细节已经在 db.js 里打进云端日志了，这儿只回人话。
-    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时读不到数据，请稍后再试', requestId);
+    sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时读不到数据'), requestId);
     return;
   }
 
@@ -409,7 +461,8 @@ async function handlePost(req, res, route, pathname, requestId) {
   } catch (e) {
     if (e && e.message === 'TOO_LARGE') {
       sendErr(res, 413, 'PAYLOAD_TOO_LARGE',
-        '请求内容太大了（超过 64KB），请检查是不是发错了东西', requestId);
+        '发过来的内容太大了（超过 64KB）。'
+        + '课表一条记录最多几百字节 —— 多半是误把整个文件贴进来了，请只发这一条数据', requestId);
       return;
     }
     console.error('[api-func] 读取请求体失败:', e);
@@ -459,7 +512,7 @@ async function handlePost(req, res, route, pathname, requestId) {
   if (record.id) {
     const sameId = await db.findBy(route.table, { id: record.id });
     if (!sameId.ok) {
-      sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时查不了，请稍后再试', requestId);
+      sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时查不了'), requestId);
       return;
     }
     if (sameId.rows.length > 0) {
@@ -474,7 +527,7 @@ async function handlePost(req, res, route, pathname, requestId) {
   write.dupKey.forEach(function (k) { dupConds[k] = record[k]; });
   const dup = await db.findBy(route.table, dupConds);
   if (!dup.ok) {
-    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时查不了，请稍后再试', requestId);
+    sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时查不了'), requestId);
     return;
   }
   if (dup.rows.length > 0) {
@@ -494,7 +547,7 @@ async function handlePost(req, res, route, pathname, requestId) {
         '这条记录已经存在了（可能是刚才重复提交了），请刷新看看', requestId);
       return;
     }
-    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时写不进去，请稍后再试', requestId);
+    sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时写不进去'), requestId);
     return;
   }
 
@@ -536,7 +589,8 @@ async function handlePatch(req, res, route, id, pathname, requestId) {
   } catch (e) {
     if (e && e.message === 'TOO_LARGE') {
       sendErr(res, 413, 'PAYLOAD_TOO_LARGE',
-        '请求内容太大了（超过 64KB），请检查是不是发错了东西', requestId);
+        '发过来的内容太大了（超过 64KB）。'
+        + '课表一条记录最多几百字节 —— 多半是误把整个文件贴进来了，请只发这一条数据', requestId);
       return;
     }
     console.error('[api-func] 读取请求体失败:', e);
@@ -579,7 +633,7 @@ async function handlePatch(req, res, route, id, pathname, requestId) {
   // ---- 3. 取"改之前的样子"（顺便回答"这条到底在不在"）----
   const before = await db.findBy(route.table, { id: id });
   if (!before.ok) {
-    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时查不了，请稍后再试', requestId);
+    sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时查不了'), requestId);
     return;
   }
   if (before.rows.length === 0) {
@@ -635,7 +689,7 @@ async function handlePatch(req, res, route, id, pathname, requestId) {
         write.dupMessage ? write.dupMessage(merged) : '改完之后和已有记录重复了', requestId);
       return;
     }
-    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时改不了，请稍后再试', requestId);
+    sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时改不了'), requestId);
     return;
   }
 
@@ -661,7 +715,7 @@ async function handleDelete(res, route, id, pathname, requestId) {
         '没有找到 id 为「' + id + '」的记录，可能已经被删掉了', requestId);
       return;
     }
-    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时删不了，请稍后再试', requestId);
+    sendErr(res, 502, 'UPSTREAM_ERROR', ourFault('数据库暂时删不了'), requestId);
     return;
   }
 
@@ -728,7 +782,10 @@ const server = http.createServer(async (req, res) => {
   // ---- 配置检查：钥匙没配上就直说，别让前端猜 ----
   if (!db.isConfigured()) {
     sendErr(res, 500, 'SERVER_MISCONFIGURED',
-      '服务端没有配置数据库密钥，请联系管理员检查云函数环境变量', requestId);
+      '我们这边出了点问题：服务端还没配好数据库密钥。这不是你操作的问题，'
+      + '已经记下来了，稍后会自动恢复；如果一直这样，把下面这串编号发给管理员：'
+      + requestId,
+      requestId);
     return;
   }
 
@@ -765,8 +822,15 @@ const server = http.createServer(async (req, res) => {
   } catch (err) {
     // 网络断了、DNS 挂了、超时……都落这里。
     // 同样：日志留全，给用户的只说人话。
+    //
+    // Day 23：换成第 3 类的统一样式 —— 关键是要说清「不是你的错」，
+    //         并**把 requestId 给到用户**，他能报出来我们才查得到。
+    //         原来的文案「服务内部出错了，请稍后再试」少了这两句。
     console.error('[api-func] 处理请求失败 on ' + pathname + ':', err && err.stack ? err.stack : err);
-    sendErr(res, 500, 'INTERNAL_ERROR', '服务内部出错了，请稍后再试', requestId);
+    sendErr(res, 500, 'INTERNAL_ERROR',
+      '我们这边出了点问题：处理这次请求时出错了。这不是你操作的问题，'
+      + '过一会儿再试一次；如果一直这样，把这串编号发给管理员：' + requestId,
+      requestId);
   }
 });
 
