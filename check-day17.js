@@ -222,11 +222,14 @@ async function checkBoundaries() {
   console.log('\n【D】边界层');
 
   // ⚠️ Day 18 改过这里：POST /api/courses 现在是**合法的写接口**，
-  //    所以"用错方法"这个边界改用 PUT 来测（PUT 在本期仍是 405）。
+  //    所以"用错方法"这个边界改用 PUT 来测。
+  // 📌 Day 22 补一句：现在**连 PATCH / DELETE 也合法了**（只是要带 id），
+  //    PUT 依然是唯一哪个路径都不认的方法 —— 所以拿它测"方法不对"仍然成立。
+  //    （标签原来写的是"Day 18 起 POST 已合法"，没说全，Day 22 补全。）
   let put;
   try {
     put = await req(BASE + '/api/courses', 'PUT');
-    ok('PUT 到接口返回 405（Day 18 起 POST 已合法，改用 PUT 测）',
+    ok('PUT 到集合路径返回 405（PUT 至今哪个接口都不支持）',
        put.status === 405, '实际 ' + put.status);
     ok('405 也用统一失败信封', put.json && put.json.ok === false
        && put.json.error && put.json.error.code === 'METHOD_NOT_ALLOWED',

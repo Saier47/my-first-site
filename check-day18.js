@@ -111,8 +111,17 @@ console.log('');
      && put.json.error.code === 'METHOD_NOT_ALLOWED' && hasChinese(put.json.error.message),
      JSON.stringify(put.json).slice(0, 120));
 
+  // ⚠️ Day 22 改过这条标签：DELETE 现在已经能用了。
+  //    它测的是**不带 id 的集合路径** —— 删除必须指明删哪一条，
+  //    所以打集合路径仍然是 405。
+  //    （旧标签写的是「DELETE 到写接口 → 405（本期不做删除）」——
+  //      "本期不做删除" 这句话从 Day 22 起就不成立了，属于
+  //      **断言绑了实现细节**：代码变了，标签变成了假话。）
   const del = await req('/api/courses', 'DELETE');
-  ok('DELETE 到写接口 → 405（本期不做删除）', del.status === 405, '实际 ' + del.status);
+  ok('DELETE 打到集合路径（忘了带 id）→ 405', del.status === 405, '实际 ' + del.status);
+  ok('405 文案提示"要带上 id"',
+     hasChinese(del.json && del.json.error && del.json.error.message)
+     && /id/.test((del.json && del.json.error && del.json.error.message) || ''));
 
   const nf1 = await req('/api/day18-not-here', 'GET');
   ok('未知路径 → 404', nf1.status === 404, '实际 ' + nf1.status);

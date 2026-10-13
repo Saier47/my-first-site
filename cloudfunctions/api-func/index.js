@@ -1,8 +1,10 @@
 /* index.js —— HTTP 层（Day 19 起，数据库的事搬到了 db.js）
  * ===================================================================
- * 这个函数对外提供两条接口：
- *   GET  /api/courses   GET  /api/ddls      —— 读出数据
- *   POST /api/courses   POST /api/ddls      —— 写进一条
+ * 这个函数对外提供这两组接口（Day 22 补齐了「改」和「删」）：
+ *   GET    /api/courses        GET    /api/ddls        —— 读出全部
+ *   POST   /api/courses        POST   /api/ddls        —— 新建一条
+ *   PATCH  /api/courses/<id>   PATCH  /api/ddls/<id>   —— 改一条（传哪些改哪些）
+ *   DELETE /api/courses/<id>   DELETE /api/ddls/<id>   —— 删一条
  *
  * 数据流：
  *   app.js → store.js → fetch('/api/courses') → 这个云函数 → db.js → 云数据库
@@ -77,8 +79,8 @@ const db = require('./db');
 // 端口必须是 9000 —— 腾讯云 SCF 平台规定来这里找你（Day 15 踩过）
 const PORT = 9000;
 
-// Day 19：拆出数据访问层（0.3.0 → 0.4.0）。对外行为一个字没变。
-const VERSION = '0.4.0';
+// Day 19：拆出数据访问层（0.3.0 → 0.4.0）。Day 22：补上 PATCH / DELETE（→ 0.5.0）。
+const VERSION = '0.5.0';
 
 // 请求体上限。课表一条记录最多几百字节，64KB 绰绰有余。
 // 设上限是为了防止有人发个巨大请求把内存撑爆（一种最朴素的攻击）。
@@ -107,6 +109,10 @@ const ROUTES = {
         return '这门课已经在课表里了（' + r.name + ' · ' + WEEKDAY[r.day_of_week]
              + ' ' + r.start_time + '），不用重复添加';
       },
+      // Day 22：PATCH 允许改哪些字段。
+      // ⚠️ 这份名单也顺带挡住"传了 id / created_at 想改"的情况 ——
+      //    不在名单里的字段一律忽略（契约第 5.3 节）。
+      patchable: ['name', 'day_of_week', 'start_time', 'end_time', 'location'],
     },
   },
 
@@ -120,6 +126,10 @@ const ROUTES = {
       dupMessage: function (r) {
         return '这条 DDL 已经记过了（' + r.title + ' · ' + r.due_date + '），不用重复添加';
       },
+      // Day 22：PATCH 允许改哪些字段。
+      // ⚠️ done 也在名单里 —— 勾选「已完成」走的就是 PATCH /api/ddls/<id> { done:true }，
+      //    契约第 5.5 节专门说了不要另开 /toggle 接口。
+      patchable: ['title', 'due_date', 'due_time', 'note', 'done'],
     },
   },
 };
@@ -496,6 +506,189 @@ async function handlePost(req, res, route, pathname, requestId) {
 }
 
 // =====================================================================
+// 处理改（PATCH /api/<表>/<id>）—— Day 22 新增
+//
+// 契约第 5.3 节：只改传的字段；id / created_at 改不了；不存在 → 404；
+// 成功 → 返回**改完之后**的完整那条。
+//
+// 🔑 校验怎么复用 POST 那一套（这是本段唯一需要想一下的地方）
+//
+//   直接拿 patch 去跑 validateCourse 是不行的 —— 它要求 name / day_of_week /
+//   start_time / end_time **全都在**，而"我只想改个教室"的时候它们当然不在。
+//   但完全不校验也不行 —— "结束时间早于开始时间"这种**跨字段**规则是真正的业务规则。
+//
+//   做法：**把 patch 合并到"改完之后应该长什么样"，再整体校验。**
+//     · 只传 location  → 合并后 name / 时间都在，不会误报"缺字段"
+//     · 传 end_time 早于 start_time → 合并后这条规则照样拦得住
+//   —— 这就是"PATCH 是局部替换"这件事在代码里的样子。
+// =====================================================================
+async function handlePatch(req, res, route, id, pathname, requestId) {
+  const write = route.write;
+  if (!write) {
+    sendErr(res, 405, 'METHOD_NOT_ALLOWED', '这个接口不支持修改', requestId);
+    return;
+  }
+
+  // ---- 1. 读 body ----
+  let raw;
+  try {
+    raw = await readBody(req);
+  } catch (e) {
+    if (e && e.message === 'TOO_LARGE') {
+      sendErr(res, 413, 'PAYLOAD_TOO_LARGE',
+        '请求内容太大了（超过 64KB），请检查是不是发错了东西', requestId);
+      return;
+    }
+    console.error('[api-func] 读取请求体失败:', e);
+    sendErr(res, 400, 'BAD_REQUEST', '没能读取请求内容，请重试', requestId);
+    return;
+  }
+
+  if (raw.trim() === '') {
+    sendErr(res, 400, 'VALIDATION_FAILED',
+      '请求内容是空的，请提供要修改的字段（JSON 格式），比如 {"location":"三教 305"}', requestId);
+    return;
+  }
+
+  let input;
+  try {
+    input = JSON.parse(raw);
+  } catch (e) {
+    sendErr(res, 400, 'BAD_JSON',
+      '请求内容不是合法的 JSON，请检查括号、引号、逗号', requestId);
+    return;
+  }
+
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    sendErr(res, 400, 'VALIDATION_FAILED', '请求内容必须是一个 JSON 对象', requestId);
+    return;
+  }
+
+  // ---- 2. 挑出允许改的字段（id / created_at 会被这道名单挡掉）----
+  const patch = {};
+  (write.patchable || []).forEach(function (k) {
+    if (Object.prototype.hasOwnProperty.call(input, k)) patch[k] = input[k];
+  });
+
+  if (Object.keys(patch).length === 0) {
+    sendErr(res, 400, 'VALIDATION_FAILED',
+      '没有可以修改的字段。这个接口能改的是：' + (write.patchable || []).join(' / '), requestId);
+    return;
+  }
+
+  // ---- 3. 取"改之前的样子"（顺便回答"这条到底在不在"）----
+  const before = await db.findBy(route.table, { id: id });
+  if (!before.ok) {
+    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时查不了，请稍后再试', requestId);
+    return;
+  }
+  if (before.rows.length === 0) {
+    sendErr(res, 404, 'NOT_FOUND',
+      '没有找到 id 为「' + id + '」的记录，可能已经被删掉了', requestId);
+    return;
+  }
+
+  // ---- 4. 合并之后整体校验 ----
+  const merged = Object.assign({}, before.rows[0], patch);
+  const checked = write.validate(merged);
+  if (!checked.ok) {
+    sendErr(res, 400, 'VALIDATION_FAILED', checked.message, requestId);
+    return;
+  }
+
+  // ---- 4.5 `done` 单独把关：必须是**真正的布尔值** ----
+  // ⚠️ 为什么不能像别处那样"宽松处理"（Day 22 实测踩出来的）：
+  //    最初这里写的是 `out.done = (patch.done === true)`。
+  //    结果传 "yes" / 1 / "true" 全都不报错 —— 接口回 **200**，
+  //    库里却静默写成了 **false**。
+  //    那就是**假成功**：调用方以为"我设成已完成/未完成"生效了，
+  //    实际拿到的是个反的值，而且它不会报错、不会有人发现。
+  //    → 宁可 400 说清楚，也不要一个"成功但写反了"的结果。
+  if (Object.prototype.hasOwnProperty.call(patch, 'done') && typeof patch.done !== 'boolean') {
+    sendErr(res, 400, 'VALIDATION_FAILED',
+      'done（是否完成）必须是布尔值 true 或 false，你给的是「'
+      + JSON.stringify(patch.done) + '」', requestId);
+    return;
+  }
+
+  // ---- 5. 取值：以校验结果为准（它做了 trim 之类的规整）----
+  // ⚠️ 唯一例外是 done —— validateDdl 里那句"新建时固定 false"是 **POST 的规则**，
+  //    改 done 是 PATCH 的合法用法（勾选完成走的就是它）。所以它从 patch 里原样拿
+  //    （上面已经确认过它一定是布尔值了）。
+  const out = {};
+  Object.keys(patch).forEach(function (k) {
+    if (k === 'done') { out.done = patch.done; return; }
+    out[k] = (k in checked.value) ? checked.value[k] : patch[k];
+  });
+
+  // ---- 6. 写 ----
+  const written = await db.update(route.table, id, out);
+  if (!written.ok) {
+    if (written.reason === 'NOT_FOUND') {
+      sendErr(res, 404, 'NOT_FOUND',
+        '没有找到 id 为「' + id + '」的记录，可能已经被删掉了', requestId);
+      return;
+    }
+    // 唯一约束撞了 —— 改完之后和另一条重复了（比如改名改成了一个已有的组合）
+    if (written.reason === 'CONFLICT') {
+      sendErr(res, 409, 'CONFLICT',
+        write.dupMessage ? write.dupMessage(merged) : '改完之后和已有记录重复了', requestId);
+      return;
+    }
+    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时改不了，请稍后再试', requestId);
+    return;
+  }
+
+  sendOk(res, written.row, requestId);
+}
+
+// =====================================================================
+// 处理删（DELETE /api/<表>/<id>）—— Day 22 新增
+//
+// 契约第 5.4 节：成功 → { id, deleted:true }；不存在 → 404 NOT_FOUND。
+//
+// 🔑 为什么"删一条不存在的"不能假装成功 —— 契约里专门为它写了一段：
+//    假成功比报错更坏。前端收到 ok:true 就把那条从界面上抹掉了，
+//    用户以为删掉了；其实从没删过，下次刷新它又回来了。
+//    **「没删到」是一个必须告诉前端的事实。**
+// =====================================================================
+async function handleDelete(res, route, id, pathname, requestId) {
+  const result = await db.remove(route.table, id);
+
+  if (!result.ok) {
+    if (result.reason === 'NOT_FOUND') {
+      sendErr(res, 404, 'NOT_FOUND',
+        '没有找到 id 为「' + id + '」的记录，可能已经被删掉了', requestId);
+      return;
+    }
+    sendErr(res, 502, 'UPSTREAM_ERROR', '数据库暂时删不了，请稍后再试', requestId);
+    return;
+  }
+
+  sendOk(res, { id: id, deleted: true }, requestId);
+}
+
+// =====================================================================
+// 路径 → 路由（Day 22 起支持带 id 的路径）
+//
+//   /api/courses        → 集合：GET 读全部、POST 新建
+//   /api/courses/<id>   → 单条：PATCH 改、DELETE 删
+//
+// 认不出来就返回 null —— 调用方回 404。
+// （顺序有讲究：**先判路径、再判方法**。「没有这个接口」比「方法不对」更准确。）
+// =====================================================================
+function matchRoute(pathname) {
+  if (ROUTES[pathname]) return { route: ROUTES[pathname], id: null };
+
+  const m = /^\/api\/([a-z]+)\/(.+)$/.exec(pathname);
+  if (m) {
+    const base = ROUTES['/api/' + m[1]];
+    if (base) return { route: base, id: decodeURIComponent(m[2]) };
+  }
+  return null;
+}
+
+// =====================================================================
 // HTTP 服务
 // =====================================================================
 const server = http.createServer(async (req, res) => {
@@ -524,11 +717,13 @@ const server = http.createServer(async (req, res) => {
   // ---- 路径不认识 → 404（先判路径，再判方法）----
   // 顺序有讲究：不存在的路径，不管用什么方法都是"没有这个接口"，
   // 说 404 比说 405 更准确。
-  const route = ROUTES[pathname];
-  if (!route) {
+  const matched = matchRoute(pathname);
+  if (!matched) {
     sendErr(res, 404, 'NOT_FOUND', '没有这个接口：' + pathname, requestId);
     return;
   }
+  const route = matched.route;
+  const id = matched.id;
 
   // ---- 配置检查：钥匙没配上就直说，别让前端猜 ----
   if (!db.isConfigured()) {
@@ -538,14 +733,34 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    if (method === 'GET') {
-      await handleGet(res, route, pathname, requestId);
-    } else if (method === 'POST') {
-      await handlePost(req, res, route, pathname, requestId);
+    // 🔑 Day 22：集合路径和单条路径**支持的方法不一样** ——
+    //    所以 405 的文案不能再写死"只支持 GET 和 POST"了。
+    //    文案要说清"这个路径支持什么、你想做的那个动作该去打哪个路径" ——
+    //    405 最常见的成因是"忘了带 id"，那就直接把它点出来。
+    if (id === null) {
+      // /api/courses、/api/ddls
+      if (method === 'GET') {
+        await handleGet(res, route, pathname, requestId);
+      } else if (method === 'POST') {
+        await handlePost(req, res, route, pathname, requestId);
+      } else {
+        sendErr(res, 405, 'METHOD_NOT_ALLOWED',
+          '路径 ' + pathname + ' 只支持 GET（读全部）和 POST（新建）。'
+          + '要改或删某一条，请带上它的 id：' + pathname + '/<id>。你用的是 ' + method,
+          requestId);
+      }
     } else {
-      // PUT / PATCH / DELETE —— 契约第 2.4 节：用错方法就是 405
-      sendErr(res, 405, 'METHOD_NOT_ALLOWED',
-        '这个接口只支持 GET 和 POST，你用的是 ' + method, requestId);
+      // /api/courses/<id>、/api/ddls/<id>
+      if (method === 'PATCH') {
+        await handlePatch(req, res, route, id, pathname, requestId);
+      } else if (method === 'DELETE') {
+        await handleDelete(res, route, id, pathname, requestId);
+      } else {
+        sendErr(res, 405, 'METHOD_NOT_ALLOWED',
+          '路径 ' + pathname + ' 只支持 PATCH（改）和 DELETE（删）。'
+          + '要读全部或新建，请用不带 id 的 ' + pathname.replace(/\/[^/]+$/, '')
+          + '。你用的是 ' + method, requestId);
+      }
     }
   } catch (err) {
     // 网络断了、DNS 挂了、超时……都落这里。

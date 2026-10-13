@@ -245,11 +245,101 @@ async function insert(name, record) {
   return { ok: true, row: created };
 }
 
+// ---------------------------------------------------------------------
+// 把上游回的 JSON 解析成"行数组"
+//
+// PostgREST 有时候回一行对象、有时候回数组，这儿的职责就是把它抹平，
+// 让上层永远只面对 rows 数组。
+// 回的不是能认的 JSON → BAD_RESPONSE（跟"上游挂了"是两回事）。
+//
+// 📌 新加的 update / remove 用它；list / findBy 里那段同样的逻辑今天先不动
+//    —— 本期只做 PATCH / DELETE，合并重构等有空再说（不改没在范围内的地方）。
+// ---------------------------------------------------------------------
+function parseRows(text, name) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    console.error('[db] ' + name + ' 返回的不是 JSON: ' + String(text).slice(0, 200));
+    return { ok: false, reason: 'BAD_RESPONSE' };
+  }
+  if (parsed === null || parsed === undefined) return { ok: true, rows: [] };
+  return { ok: true, rows: Array.isArray(parsed) ? parsed : [parsed] };
+}
+
+// ---------------------------------------------------------------------
+// 改一条（Day 22 · 契约第 5.3 节 —— PATCH）
+//
+// 语义：**传哪些字段就改哪些**，没传的一律不动。
+//
+// · id / created_at 改不了 —— 契约第 5.3 节。传了也不报错，直接丢掉，
+//   和 store.js 的做法一致（它也在这两行强行覆盖回来）。
+// · updated_at 由这儿补上：表里那一列只有 DEFAULT now()、**没有触发器**，
+//   不显式写就永远是创建时间，这一列就废了。
+// · Prefer: return=representation → 拿回**改完之后**的完整那一行。
+// · 一行都没改到 = 这条不存在 → NOT_FOUND（由 index.js 翻成 404）。
+//
+// ⚠️ 为什么不"先查再改"：那样中间有并发窗口（查到了、改之前被别人删了）。
+//    直接拿"改到了 0 行"当作"这条不存在"，一次往返就够。
+// ---------------------------------------------------------------------
+async function update(name, id, patch) {
+  const t = table(name);
+
+  const body = Object.assign({}, patch);
+  delete body.id;
+  delete body.created_at;
+  body.updated_at = new Date().toISOString();
+
+  const r = await request('PATCH', '/' + name + '?id=eq.' + encodeURIComponent(id), {
+    body: JSON.stringify(body),
+    prefer: 'return=representation',
+  });
+
+  if (!r.ok) {
+    // 万一上游对"没匹配到"回的是 404，别把它当成故障
+    if (r.status === 404) return { ok: false, reason: 'NOT_FOUND' };
+    return upstreamFailed('改', name, r);
+  }
+
+  const parsed = parseRows(r.text, name);
+  if (!parsed.ok) return parsed;
+  if (parsed.rows.length === 0) return { ok: false, reason: 'NOT_FOUND' };
+
+  return { ok: true, row: parsed.rows[0] };
+}
+
+// ---------------------------------------------------------------------
+// 删一条（Day 22 · 契约第 5.4 节 —— DELETE）
+//
+// 关键点：**"没删到"必须和"删成功"分开。**
+// 契约第 5.4 节专门写了这一条 —— 删一个不存在的 id 假装成功，
+// 前端就会以为删掉了，其实压根没这条。那种假成功比报错更坏。
+// → 所以同样靠"删到了几行"来回答"这条在不在"。
+// ---------------------------------------------------------------------
+async function remove(name, id) {
+  const r = await request('DELETE', '/' + name + '?id=eq.' + encodeURIComponent(id), {
+    prefer: 'return=representation',
+  });
+
+  if (!r.ok) {
+    if (r.status === 404) return { ok: false, reason: 'NOT_FOUND' };
+    return upstreamFailed('删', name, r);
+  }
+
+  const parsed = parseRows(r.text, name);
+  if (!parsed.ok) return parsed;
+  if (parsed.rows.length === 0) return { ok: false, reason: 'NOT_FOUND' };
+
+  return { ok: true, row: parsed.rows[0] };
+}
+
 module.exports = {
   ENV_ID: ENV_ID,
   isConfigured: isConfigured,
   list: list,
   findBy: findBy,
   insert: insert,
+  update: update,
+  remove: remove,
   newId: newId,
 };

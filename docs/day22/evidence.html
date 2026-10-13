@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>Day 22 证据 · PATCH 改了值 + DELETE 后不再返回</title>
+<style>
+:root{--ink:#1a1d21;--ink2:#4a4f57;--ink3:#7a8189;--line:#e3e6ea;--soft:#f7f8fa;
+--ok:#0b6b34;--okbg:#e8f6ed;--okline:#b6e0c6;--red:#a8231a;--redbg:#fdecea;--redline:#f2c3bd;}
+*{box-sizing:border-box}
+body{margin:0;padding:30px 26px 50px;background:#fff;color:var(--ink);font-size:13.5px;line-height:1.6;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;}
+.wrap{max-width:1060px;margin:0 auto}
+h1{margin:0 0 6px;font-size:22px}
+.meta{color:var(--ink3);font-size:12.5px}
+.lead{margin:14px 0 4px;padding:11px 14px;background:var(--soft);border-left:3px solid var(--ink);
+border-radius:0 6px 6px 0;color:var(--ink2)}
+h2{font-size:15.5px;margin:30px 0 4px;padding-left:9px;border-left:4px solid var(--ink)}
+h2 .tag{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:2px}
+.tag.ok{background:var(--okbg);color:var(--ok);border:1px solid var(--okline)}
+.tag.red{background:var(--redbg);color:var(--red);border:1px solid var(--redline)}
+.sub{color:var(--ink3);font-size:12.5px;margin:2px 0 12px}
+.cols{display:flex;gap:16px;flex-wrap:wrap}
+.col{flex:1 1 320px;min-width:0}
+.col h3{margin:0 0 6px;font-size:13px;color:var(--ink2)}
+table.kv{width:100%;border-collapse:collapse;font-size:12px}
+table.kv td{border:1px solid var(--line);padding:4px 8px;font-family:Consolas,Menlo,monospace;word-break:break-all}
+table.kv td.k{background:var(--soft);color:var(--ink2);width:104px;white-space:nowrap;font-family:inherit}
+table.kv tr.hl td{background:#fff8dd;font-weight:700}
+.req{margin:10px 0 12px;padding:10px 12px;background:#2b3038;color:#e8eaed;border-radius:7px;
+font-family:Consolas,Menlo,monospace;font-size:12px;white-space:pre-wrap;word-break:break-all}
+.req .m{color:#7fd18a;font-weight:700}
+.req .p{color:#8fb8ff}
+.box{border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin:12px 0}
+.okbox{background:var(--okbg);border-color:var(--okline);color:#0a5b2c}
+.redbox{background:var(--redbg);border-color:var(--redline);color:#6d1a13}
+.idlist{margin:8px 0 0;font-family:Consolas,Menlo,monospace;font-size:11.5px;line-height:1.9;
+word-break:break-all;color:var(--ink2)}
+.gone{color:#a8231a;text-decoration:line-through;font-weight:700}
+footer{margin-top:34px;padding-top:12px;border-top:1px solid var(--line);color:var(--ink3);font-size:12px}
+</style></head><body><div class="wrap">
+
+<h1>Day 22 证据 · 改（PATCH）与删（DELETE）</h1>
+<div class="meta">2026-10-12 ｜ 全部数据来自公网接口的**真实响应**，不是手写的 ｜ 环境 my-first-site-d0g3re4p71560e327</div>
+<div class="lead">下面每一步都做了同一件事：<b>请求 → 拿响应 → 再重新 GET 一遍看数据源</b>。<br>
+接口说"我改成功了"不算数 —— 只有重新读回来的值变了，才算证据。</div>
+
+<section id="patch">
+<h2><span class="tag ok">截图①</span>PATCH：只改一个字段，其他一个没动</h2>
+<div class="sub">拿刚才新建的那条课当靶子，只传 <code>location</code> 一个字段。</div>
+
+<div class="req"><span class="m">PATCH</span> <span class="p">/api/courses/c_d22ev_mv5ftl7x</span>
+Content-Type: application/json
+
+{"location":"四教 888（改过）"}
+→ HTTP 200</div>
+
+<div class="cols">
+  <div class="col"><h3>改之前（GET 回来的那一行）</h3><table class="kv"><tr><td class="k">id</td><td class="v">"c_d22ev_mv5ftl7x"</td></tr><tr><td class="k">name</td><td class="v">"证据用课 mv5ftl7x"</td></tr><tr><td class="k">day_of_week</td><td class="v">3</td></tr><tr><td class="k">start_time</td><td class="v">"14:00"</td></tr><tr><td class="k">end_time</td><td class="v">"15:40"</td></tr><tr class="hl"><td class="k">location</td><td class="v">"三教 101"</td></tr><tr><td class="k">created_at</td><td class="v">"2026-10-12T23:59:28.394544+08:00"</td></tr><tr><td class="k">updated_at</td><td class="v">"2026-10-12T23:59:28.394544+08:00"</td></tr></table></div>
+  <div class="col"><h3>改之后（★ 再 GET 一遍，看数据源）</h3><table class="kv"><tr><td class="k">id</td><td class="v">"c_d22ev_mv5ftl7x"</td></tr><tr><td class="k">name</td><td class="v">"证据用课 mv5ftl7x"</td></tr><tr><td class="k">day_of_week</td><td class="v">3</td></tr><tr><td class="k">start_time</td><td class="v">"14:00"</td></tr><tr><td class="k">end_time</td><td class="v">"15:40"</td></tr><tr class="hl"><td class="k">location</td><td class="v">"四教 888（改过）"</td></tr><tr><td class="k">created_at</td><td class="v">"2026-10-12T23:59:28.394544+08:00"</td></tr><tr><td class="k">updated_at</td><td class="v">"2026-10-12T23:59:28.748+08:00"</td></tr></table></div>
+</div>
+
+<div class="box okbox">
+<b>看这三行就够了：</b><br>
+· <b>location</b>："三教 101" → <b>"四教 888（改过）"</b> ✅ 真的变了<br>
+· <b>created_at</b>：两次完全一样 ✅ <b>创建时间不受"改"影响</b><br>
+· <b>updated_at</b>：2026-10-12T23:59:28.394544+08:00 → 2026-10-12T23:59:28.748+08:00 ✅ 改过就有痕迹<br>
+· 其余 5 个字段（name / 星期 / 起止时间 / id）一个都没动 ✅ 总数仍是 11 条
+</div>
+
+</section>
+
+<section id="del">
+<h2><span class="tag red">截图②</span>DELETE：删掉之后，GET 返回里再也找不到它</h2>
+<div class="sub">删除前先记下 GET 返回的全部 id，删完再拉一遍，肉眼比对。</div>
+
+<div class="req"><span class="m">DELETE</span> <span class="p">/api/courses/c_d22ev_mv5ftl7x</span>
+→ HTTP 200
+
+响应： {"id":"c_d22ev_mv5ftl7x","deleted":true}</div>
+
+<div class="cols">
+  <div class="col"><h3>删之前的 GET 返回（11 条）</h3>
+    <div class="idlist">c_seed_01<br>c_seed_02<br>c_seed_03<br>c_seed_04<br>c_seed_05<br><span class="gone">c_d22ev_mv5ftl7x ← 它</span><br>c_seed_06<br>c_seed_07<br>c_seed_08<br>c_seed_09<br>c_seed_10</div>
+  </div>
+  <div class="col"><h3>删之后的 GET 返回（10 条）</h3>
+    <div class="idlist">c_seed_01<br>c_seed_02<br>c_seed_03<br>c_seed_04<br>c_seed_05<br>c_seed_06<br>c_seed_07<br>c_seed_08<br>c_seed_09<br>c_seed_10</div>
+  </div>
+</div>
+
+<div class="box redbox">
+<b>三个角度都说"没了"：</b><br>
+· 条数：11 → <b>10</b>（正好少一条）<br>
+· 按 <code>id</code> 在 GET 返回里找 → <b>找不到 ✅</b><br>
+· 按 <code>name</code>（证据用课 mv5ftl7x）在 GET 返回里找 → <b>找不到 ✅</b><br>
+· 再删同一条 → HTTP <b>404</b>「没有找到 id 为「c_d22ev_mv5ftl7x」的记录，可能已经被删掉了」← 不假装成功
+</div>
+
+</section>
+
+<div class="box okbox">
+<b>本页结论：</b>PATCH ✅ 通过 ｜ DELETE ✅ 通过<br>
+<span style="font-size:12px">数据是脚本真跑出来的；这一页只做排版。跑完库里回到原来的条数，这条证据用课已被删除。</span>
+</div>
+
+<footer>Day 22 · 增删改查四类操作闭环 ｜ 证据页由真实接口响应生成 2026-10-12T15:59:30.046Z</footer>
+</div></body></html>

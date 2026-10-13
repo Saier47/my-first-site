@@ -122,7 +122,7 @@ https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.co
 | `200` | 请求处理完了（**不管业务成没成** —— 成没成看 `ok`） |
 | `400` | 请求本身有问题：字段缺失、格式不对、超出范围 |
 | `404` | 要操作的那条记录不存在 / 没有这个接口 |
-| `405` | 用错了方法（对只支持 GET / POST 的接口发 PUT、DELETE） |
+| `405` | 用错了方法。⚠️ **Day 22 起要分清两种路径**：`/api/courses`（集合）只认 `GET` / `POST`；`/api/courses/<id>`（单条）只认 `PATCH` / `DELETE`。最常见的 405 就是**忘了带 id** —— 提示语里会直接点出来 |
 | `409` | **要建的东西已经存在了**（重复提交）—— Day 18 新增 |
 | `413` | 请求体太大（超过 64KB）—— Day 18 新增 |
 | `500` | 后端自己崩了（未捕获的异常） |
@@ -223,15 +223,22 @@ https://my-first-site-d0g3re4p71560e327-1500310885.ap-shanghai.app.tcloudbase.co
 |---|---|---|---|---|---|
 | 1 | 取课程列表 | `GET` | `/api/courses` | `listCourses()` | ✅ **Day 17 已实现** |
 | 2 | 新建课程 | `POST` | `/api/courses` | `createCourse(input)` | ✅ **Day 18 已实现** |
-| 3 | 修改课程 | `PATCH` | `/api/courses/:id` | `updateCourse(id, patch)` | Day 16 |
-| 4 | 删除课程 | `DELETE` | `/api/courses/:id` | `deleteCourse(id)` | Day 16 |
+| 3 | 修改课程 | `PATCH` | `/api/courses/:id` | `updateCourse(id, patch)` | ✅ **Day 22 已实现** |
+| 4 | 删除课程 | `DELETE` | `/api/courses/:id` | `deleteCourse(id)` | ✅ **Day 22 已实现** |
 | 5 | 取 DDL 列表 | `GET` | `/api/ddls` | `listDdls()` | ✅ **Day 17 已实现** |
 | 6 | 新建 DDL | `POST` | `/api/ddls` | `createDdl(input)` | ✅ **Day 18 已实现** |
-| 7 | 修改 DDL | `PATCH` | `/api/ddls/:id` | `updateDdl(id, patch)` | Day 16 |
-| 8 | 删除 DDL | `DELETE` | `/api/ddls/:id` | `deleteDdl(id)` | Day 16 |
+| 7 | 修改 DDL | `PATCH` | `/api/ddls/:id` | `updateDdl(id, patch)` | ✅ **Day 22 已实现** |
+| 8 | 删除 DDL | `DELETE` | `/api/ddls/:id` | `deleteDdl(id)` | ✅ **Day 22 已实现** |
 | — | **健康检查** | `GET` | `/api/health` | ——（没有对应函数） | ✅ **Day 15 已完成** |
 
-> **Day 17 / Day 18 实现备注（#1 #2 #5 #6 已完成，其余仍是待做）**
+> **8 个业务接口到此全部实现**（Day 22 补上最后四个：改和删）。
+> 前端 `store.js` 那 8 个函数**一行都没改过** —— 它们从 Day 20 起就照这份契约写好了，
+> 后端一上线自动就通。这就是「契约先行」的收益。
+
+> **Day 17 / Day 18 实现备注（#1 #2 #5 #6）**
+>
+> 📌 **Day 22 补充**：#3 #4 #7 #8 落在**同一个云函数**里，只是多了「带 id 的路径」这一层匹配
+> （`matchRoute()`）。所以 #1~#8 **八条路由共用**下面这套部署配置，没有第二个云函数。
 >
 > 这四个接口都在**同一个云函数**里：`cloudfunctions/api-func/index.js`（按路径 + 方法分发）。
 > 网关登记：`cloudbaserc.json` → `api-func`，`type: HTTP` + `public: true` + `gatewayPath: "/api"`。
