@@ -680,16 +680,32 @@
 
      连续两次保存时，后一次要重置计时器 —— 不然第一次的 2.4 秒倒计时
      会把第二次的提示提前掐断（连续操作测试里会碰到）。 */
+  /* Day 24：提示条现在有两种语气 —— 办成了（默认）/ 没办成（传 'error'）。
+     为什么必须分：删除失败、勾选失败原来**一个字都不说**（见下面 reportActionFailure），
+     现在开始说了，但如果长得跟「已保存」一模一样，
+     用户会把"失败了"当成"成功了" —— 那比不说更坏。 */
   let toastTimer = null;
-  function showToast(text) {
+  function showToast(text, kind) {
     const box = el('toast');
     const txt = el('toast-text');
     if (!box || !txt) return;
+
+    const isErr = (kind === 'error');
     txt.textContent = text;
+    box.classList.toggle('is-error', isErr);
+    const icon = box.querySelector('.toast-check');
+    if (icon) icon.textContent = isErr ? '!' : '✓';
+    // 无障碍：报错该"打断"读屏，而不是排队等前面念完
+    box.setAttribute('role', isErr ? 'alert' : 'status');
+    box.setAttribute('aria-live', isErr ? 'assertive' : 'polite');
+
     box.hidden = false;
     // 强制一次重排：hidden 刚摘掉时直接加类，过渡可能不触发
     if (box.offsetWidth === 0) { /* 读一下强制 reflow */ }
     box.classList.add('is-on');
+
+    // 失败提示留久一点：用户得读完才知道"这事儿没成、以及为什么没成"
+    const hold = isErr ? 4200 : 2400;
 
     if (toastTimer) window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(function () {
@@ -700,7 +716,7 @@
         box.classList.remove('is-on');
         toastTimer = null;
       }, 220);
-    }, 2400);
+    }, hold);
   }
 
   /* 把某个表单的提交按钮切成「保存中」或恢复。
@@ -834,34 +850,96 @@
     );
   }
 
-  /* ======================= 删除 / 勾选完成 ======================= */
+  /* ======================= 删除 / 勾选完成 =======================
+   *
+   * 🔴 Day 24 修的 Bug —— 这三个操作原来**失败时一个字都不说**。
+   *
+   *   症状（真浏览器里复现过）：
+   *     断网点「删除」→ 确认框弹了、点了确定 → 然后什么也没发生。
+   *     记录还在列表里，界面毫无反应，控制台一条未捕获的报错。
+   *
+   *   根因：
+   *     它们是 async 函数，内部 await 网络请求，但**调用方没接异常**
+   *     （见下面的 onClick / onChange）。Day 20 写它们时数据来自 localStorage ——
+   *     读本地几乎不会失败，所以没人想到要处理失败。
+   *     Day 22 换成调云接口，"失败"这条路才第一次真的存在。
+   *
+   *   修法：
+   *     三个函数各自保证"不把异常漏出去"，失败时统一走 reportActionFailure。
+   *     **函数自己保证，比指望每个调用点都记得加 catch 靠谱得多。**
+   */
+
+  /* 失败了要说话。
+     - 给开发者：完整堆栈进 console
+     - 给用户：一句人话 + 红色提示条
+     人话从哪来：store.js 抛出的 Error.message 已经是中文
+     （断网是"连不上服务器…"，后端拒绝就直接用后端那句话）。 */
+  async function reportActionFailure(whatFailed, err) {
+    const why = (err && err.message) ? err.message : '未知错误';
+    console.error('[app] ' + whatFailed + '失败：', err);
+    showToast(whatFailed + '没成功：' + why, 'error');
+  }
+
+  /* 把某个复选框拨回指定状态。只给"勾选失败"用 —— 理由见 toggleDone。 */
+  function restoreCheckbox(id, value) {
+    const boxes = document.querySelectorAll('input[data-action="toggle-done"]');
+    for (let i = 0; i < boxes.length; i++) {
+      if (boxes[i].getAttribute('data-id') === id) { boxes[i].checked = value; return true; }
+    }
+    return false;
+  }
 
   async function openEdit(kind, id) {
-    const S = dataSource();
-    const all = kind === 'course' ? await S.listCourses() : await S.listDdls();
-    const rec = all.filter(function (x) { return x.id === id; })[0];
-    if (rec) openModal(kind, rec);
+    try {
+      const S = dataSource();
+      const all = kind === 'course' ? await S.listCourses() : await S.listDdls();
+      const rec = all.filter(function (x) { return x.id === id; })[0];
+      if (rec) { openModal(kind, rec); return; }
+      // 记录不在了（多半是别处已经删了）—— 也要说一声。
+      // 静默返回 = 用户点了「编辑」却什么都没发生，跟刚修的 Bug 是同一类毛病。
+      showToast('这条记录已经不在了，可能刚被别处删掉。刷新一下看看。', 'error');
+    } catch (err) {
+      await reportActionFailure('打开编辑', err);
+    }
   }
 
   async function removeRecord(kind, id) {
     const isCourse = kind === 'course';
-    const S = dataSource();
-    const all = isCourse ? await S.listCourses() : await S.listDdls();
-    const target = all.filter(function (x) { return x.id === id; })[0];
-    if (!target) return;
+    try {
+      const S = dataSource();
+      const all = isCourse ? await S.listCourses() : await S.listDdls();
+      const target = all.filter(function (x) { return x.id === id; })[0];
 
-    const name = isCourse ? target.name : target.title;
-    // A7：删除前先弹一次确认；点「取消」什么都不做
-    if (!window.confirm('确定删除「' + name + '」吗？删除后不能恢复。')) return;
+      if (!target) {
+        // 「没删到」是一个必须告诉用户的事实 —— 假装成功比报错更坏：
+        // 用户以为删掉了，下次刷新它又回来了，那才叫吓人。
+        showToast('这条记录已经不在了，可能刚被别处删掉。刷新一下看看。', 'error');
+        return;
+      }
 
-    if (isCourse) await S.deleteCourse(id);
-    else await S.deleteDdl(id);
-    await render();
+      const name = isCourse ? target.name : target.title;
+      // A7：删除前先弹一次确认；点「取消」什么都不做
+      if (!window.confirm('确定删除「' + name + '」吗？删除后不能恢复。')) return;
+
+      if (isCourse) await S.deleteCourse(id);
+      else await S.deleteDdl(id);
+      await render();
+    } catch (err) {
+      await reportActionFailure('删除', err);
+    }
   }
 
   async function toggleDone(id, checked) {
-    await dataSource().updateDdl(id, { done: checked });
-    await render();
+    try {
+      await dataSource().updateDdl(id, { done: checked });
+      await render();
+    } catch (err) {
+      // 🔑 这一步不能省：change 事件触发时，浏览器**已经**把复选框切到新状态了。
+      //    请求失败 = 数据根本没存上。不拨回去的话，界面就在撒谎 ——
+      //    显示"已完成"，用户一刷新又变回未完成，还不知道哪次才是真的。
+      restoreCheckbox(id, !checked);
+      await reportActionFailure('勾选', err);
+    }
   }
 
   /* ======================= Day 13：hash 路由 =======================

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<!--
+  docs/day24/evidence.html —— Day 24 Bug 复现与修复证据页
+
+  ⚠️ 诚实说明：本页里所有"控制台输出"都是**真机真跑抓下来的原文**，
+     由浏览器自动化工具从 DevTools 协议读取（不是手写的）。
+     唯一差别是没有 F12 面板的外框 —— 内容一字未改。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 24 · Bug 复现与修复证据</title>
+<style>
+  :root {
+    --ink:#1a1d23; --ink-2:#4a5160; --ink-3:#7a8494;
+    --line:#e3e7ee; --bg:#fff; --soft:#f7f9fc;
+    --ok:#0f9d58; --ok-bg:#e8f6ee; --bad:#d93025; --bad-bg:#fdecea;
+    --accent:#2f6fed; --warn:#f0b429;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 20px 56px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.7}
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 8px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:13.5px;margin-bottom:24px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:20px 23px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  h2{font-size:16.5px;margin:0 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line);
+     display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+        border-radius:6px;background:var(--accent);color:#fff;font-size:12.5px;flex:0 0 auto}
+  /* 控制台样式 */
+  .console{background:#12151c;border-radius:9px;overflow:hidden;margin:0 0 12px;
+           border:1px solid #2a3140}
+  .console-bar{display:flex;align-items:center;gap:7px;padding:9px 13px;
+               background:#1a1f29;border-bottom:1px solid #2a3140}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .console-title{margin-left:6px;font-size:12px;color:#8b98ae;
+                 font-family:Consolas,monospace}
+  .console pre{margin:0;padding:13px 15px;color:#d7e3f4;overflow-x:auto;
+               font-family:Consolas,"Cascadia Mono",monospace;font-size:12.5px;line-height:1.75}
+  .ln{display:block;white-space:pre-wrap;word-break:break-all}
+  .err{color:#ff8a8a;font-weight:600}
+  .dim{color:#6d7a92}
+  .okc{color:#5ddb9a;font-weight:600}
+  .hit{background:rgba(217,48,37,.16);border-radius:3px;padding:0 3px}
+  .measure{background:#12151c;border-radius:9px;padding:13px 15px;margin:0 0 10px;
+           font-family:Consolas,monospace;font-size:12.5px;color:#d7e3f4;line-height:1.8}
+  .measure .k{color:#8ab4ff}
+  .measure .v{color:#ffd479}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600;color:var(--ink-2);font-size:12.5px}
+  td.no{color:var(--bad);font-weight:600}
+  td.yes{color:var(--ok);font-weight:600}
+  .note{background:#fff8e6;border-left:3px solid var(--warn);padding:12px 15px;
+        border-radius:0 8px 8px 0;font-size:13px;color:#6b4c00;margin-top:12px}
+  .note.blue{background:#eef4ff;border-color:var(--accent);color:#1a3a7a}
+  code{background:var(--soft);padding:1px 6px;border-radius:4px;
+       font-family:Consolas,monospace;font-size:12.5px;color:#c0392b}
+  .snip{background:#0f1729;color:#c9d6ea;border-radius:8px;padding:12px 14px;margin:8px 0;
+        font-family:Consolas,monospace;font-size:12.5px;line-height:1.7;overflow-x:auto}
+  .snip .cmt{color:#6d7a92}
+  .snip .add{color:#5ddb9a}
+  .snip .del{color:#ff8a8a}
+  .foot{color:var(--ink-3);font-size:12.5px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 24 · Bug 复现与修复证据</h1>
+  <div class="sub">
+    my-first-site ｜ 2026-10-15 ｜ 一个真实 Bug：<b>删除 / 编辑 / 勾选失败时，界面一个字都不说</b>
+  </div>
+
+  <!-- ========== 结论 ========== -->
+  <div class="card">
+    <h2><span class="n">0</span>一句话结论</h2>
+    <table>
+      <tr><th style="width:110px">阶段</th><th>结果</th></tr>
+      <tr><td><b>复现</b></td>
+          <td class="no">断网点「删除」→ 确认 → 什么都没发生，控制台一条未被接住的报错</td></tr>
+      <tr><td><b>定位</b></td>
+          <td><code>app.js</code> 的 <code>onClick</code> 里 <code>openEdit()</code> / <code>removeRecord()</code> 没接异常<br>
+              （同段代码里 <code>render()</code> 是接了的一一 说明这是漏，不是设计）</td></tr>
+      <tr><td><b>修复</b></td>
+          <td class="yes">三个操作各自兜住失败，失败时弹红色提示条告诉用户</td></tr>
+      <tr><td><b>验证</b></td>
+          <td class="yes">未捕获异常 1 → <b>0</b>；界面反馈 0 → <b>1</b>；正常删除仍然成功</td></tr>
+    </table>
+  </div>
+
+  <!-- ========== 复现方法 ========== -->
+  <div class="card">
+    <h2><span class="n">1</span>怎么复现的（诚实说明）</h2>
+    <p style="margin:0 0 10px;font-size:13.5px">
+      真实用户场景是<b>信号差</b>（地铁、电梯）：请求发不出去。自动化里没法拔网线，
+      所以用等价手段：<b>把 DELETE 请求改成必定失败</b>，GET 保持正常 ——
+      这样"点击 → 确认 → 删除请求失败"整条链路跟真实断网一模一样。
+    </p>
+    <div class="snip">
+<span class="cmt">// 注入到页面里（模拟"删到一半网断了"）</span>
+var orig = window.fetch;
+window.fetch = function (url, opts) {
+  if (opts &amp;&amp; opts.method === <span class="add">'DELETE'</span>) {
+    return Promise.<span class="add">reject</span>(new TypeError(<span class="add">'Failed to fetch'</span>));  <span class="cmt">// 断网时浏览器给的就是这个</span>
+  }
+  return orig.apply(this, arguments);
+};
+    </div>
+  </div>
+
+  <!-- ========== 修复前：控制台原文 ========== -->
+  <div class="card">
+    <h2><span class="n">2</span>🔴 修复前 · 控制台报错原文</h2>
+    <div class="console">
+      <div class="console-bar">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span class="console-title">Console — 点删除、确认后</span>
+      </div>
+<pre><span class="ln"><span class="err">[error]</span> [store] 请求发不出去 /api/courses/c_seed_01 {stack: "TypeError: Failed to fetch</span><span class="ln">    at window.fetch (<span class="hit">…/app.js:857:27</span>)", message: "Failed to fetch"}</span><span class="ln dim">（然后就没了 —— 这句话之后，再没有任何一层接住这个错误）</span></pre>
+    </div>
+    <div class="note">
+      <b>为什么异常会"冒出去"：</b>store 层把 fetch 的失败包成一个中文 Error 往上抛
+      （<code>"连不上服务器，请检查网络后重试"</code>），
+      而 <code>removeRecord()</code> 和它的调用方都没接 —— 于是它成了
+      <b>未捕获的 Promise 拒绝</b>。用监听器把这件事抓了个现行：
+    </div>
+    <div class="measure">
+<span class="k">window.__unhandled</span> = <span class="v">["连不上服务器，请检查网络后重试"]</span>   <span class="dim">← 非空 = 有一个异常没人管</span>
+    </div>
+    <div class="note blue">
+      F12 里这一行会显示成 <code>Uncaught (in promise) Error: 连不上服务器，请检查网络后重试</code>
+      —— 普通用户永远看不到它，也不会去看。
+    </div>
+  </div>
+
+  <!-- ========== 修复前：界面 ========== -->
+  <div class="card">
+    <h2><span class="n">3</span>🔴 修复前 · 界面上发生了什么</h2>
+    <div class="measure">
+<span class="k">document.querySelectorAll('.state-error').length</span> = <span class="v">0</span>        <span class="dim">← 一个错误提示块都没有</span>
+<span class="k">#toast 的 opacity</span> = <span class="v">0</span>                            <span class="dim">← 提示条没显示</span>
+<span class="k">"高等数学" 还在列表里吗</span> = <span class="v">是</span>                     <span class="dim">← 删除确实失败了</span>
+    </div>
+    <p style="margin:8px 0 0;font-size:13.5px">
+      <b>三者合起来就是问题：</b>操作失败了（记录还在）、但界面<strong>没有任何反馈</strong>、
+      而且用户也无从知道 —— 他只会以为"我刚才点偏了"。
+    </p>
+  </div>
+
+  <!-- ========== 定位 ========== -->
+  <div class="card">
+    <h2><span class="n">4</span>定位 · 差在哪一行</h2>
+    <p style="margin:0 0 6px;font-size:13.5px">
+      从报错堆栈往回追到 <code>onClick</code>（事件总入口），一见分晓：
+    </p>
+    <div class="snip">
+<span class="cmt">// app.js 的 onClick（事件委托总入口）</span>
+} else if (action === <span class="add">'edit'</span>) {
+  <span class="del">openEdit(kind, id);</span>            <span class="cmt">// ← 异步函数，异常没人接</span>
+} else if (action === <span class="add">'delete'</span>) {
+  <span class="del">removeRecord(kind, id);</span>        <span class="cmt">// ← 一样</span>
+} else if (action === <span class="add">'retry'</span>) {
+  <span class="add">render().catch(function (err) { … });</span>   <span class="cmt">// ← 这个记得接</span>
+}
+    </div>
+    <table>
+      <tr><th style="width:170px">成因</th><th>说明</th></tr>
+      <tr><td>Day 20 写这三个函数时</td>
+          <td>数据来自 <code>localStorage</code> —— <b>读本地几乎不会失败</b>，所以没人想到要处理失败</td></tr>
+      <tr><td>Day 22 换成云接口后</td>
+          <td>"请求可能失败"这条路才第一次真的存在，<b>但这三个调用点没跟着补 catch</b></td></tr>
+    </table>
+    <div class="note">
+      <b>一条通用教训：把"不会失败的代码"换成"会失败的代码"时，
+      最容易漏掉的就是失败这条路</b> —— 它平时不显形，只在对应用户身上显形。
+    </div>
+  </div>
+
+  <!-- ========== 修复后 ========== -->
+  <div class="card">
+    <h2><span class="n">5</span>✅ 修复后 · 同样的操作</h2>
+    <div class="console">
+      <div class="console-bar">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#fecbe2"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span class="console-title">Console — 同样断网、同样点删除</span>
+      </div>
+<pre><span class="ln"><span class="err">[error]</span> [store] 请求发不出去 /api/courses/c_seed_01 {stack: "TypeError: Failed to fetch</span><span class="ln">    at window.fetch (…/app.js:924:29)", message: "Failed to fetch"}</span><span class="ln"><span class="okc">[error] [app] 删除失败： {stack: "Error: 连不上服务器，请检查网络后重试</span></span><span class="ln"><span class="okc">    at callApi (…/store.js:81:13)", message: "连不上服务器，请检查网络后重试"}</span></pre>
+    </div>
+    <table>
+      <tr><th style="width:230px">指标</th><th style="width:150px">修复前</th><th>修复后</th></tr>
+      <tr><td>未捕获的 Promise 拒绝</td><td class="no">1 条</td><td class="yes">0 条</td></tr>
+      <tr><td>控制台里有"有人接住"的痕迹</td><td class="no">没有</td><td class="yes"><code>[app] 删除失败：…</code></td></tr>
+      <tr><td>界面给用户的反馈</td><td class="no">完全沉默</td><td class="yes">红色提示条</td></tr>
+      <tr><td>提示条上的文案</td><td class="no">—</td><td class="yes">删除没成功：连不上服务器，请检查网络后重试</td></tr>
+    </table>
+    <div class="measure">
+<span class="k">window.__unhandled</span> = <span class="v">[]</span>   <span class="dim">← 空了：异常第一次有人接住</span>
+<span class="k">#toast 的 class</span> = <span class="v">"toast is-error"</span>
+<span class="k">#toast 的文案</span> = <span class="v">"删除没成功：连不上服务器，请检查网络后重试"</span>
+    </div>
+    <div class="note blue">
+      <b>为什么用户看到的是人话：</b>Day 23 把后端错误的 message 改成了中文
+      （<code>"连不上服务器，请检查网络后重试"</code>）。
+      但那时候前端不接异常 —— <b>那些好文案用户根本看不到</b>。
+      今天这个修复，才让 Day 23 的成果真正落到用户眼前。
+    </div>
+
+    <h3 style="font-size:14.5px;margin:20px 0 9px">另一个场景：勾选「已完成」失败（更隐蔽）</h3>
+    <p style="margin:0 0 8px;font-size:13.5px">
+      这个比删除更阴险 —— 因为复选框在浏览器里<b>已经</b>变成勾上了，
+      界面看上去像"操作成功了"，其实数据根本没存上。
+    </p>
+    <div class="measure">
+<span class="k">初始</span>         checked = <span class="v">true</span>    <span class="dim">← 这条 DDL 本来就是"已完成"</span>
+<span class="k">点一下之后</span>   checked = <span class="v">false</span>   <span class="dim">← 浏览器先切了（它不管请求成不成）</span>
+<span class="k">3 秒后</span>       checked = <span class="v">true</span>    <span class="dim">← ✅ 被拨回来了</span>
+
+<span class="k">提示条</span>      = <span class="v">"勾选没成功：连不上服务器，请检查网络后重试"</span>
+<span class="k">未捕获异常</span>  = <span class="v">[]</span>
+    </div>
+    <div class="note">
+      <b>为什么一定要拨回去：</b>不拨的话，界面显示"已完成"、库里还是"未完成" ——
+      <b>用户一刷新就自相矛盾</b>，而且他永远不知道哪一次才是真的。
+      这类"界面撒谎"跟 Day 22 修的「done 被静默写成 false」是同一种病。
+    </div>
+  </div>
+
+  <!-- ========== 修复内容 ========== -->
+  <div class="card">
+    <h2><span class="n">6</span>修复了什么（三处 + 一个额外）</h2>
+    <div class="snip">
+<span class="cmt">// 1) 统一的"失败了要说话"</span>
+async function reportActionFailure(whatFailed, err) {
+  const why = (err &amp;&amp; err.message) ? err.message : <span class="add">'未知错误'</span>;
+  console.error(<span class="add">'[app] '</span> + whatFailed + <span class="add">'失败：'</span>, err);   <span class="cmt">// 开发者看全的堆栈</span>
+  showToast(whatFailed + <span class="add">'没成功：'</span> + why, <span class="add">'error'</span>);    <span class="cmt">// 用户看一句人话</span>
+}
+
+<span class="cmt">// 2) 三个函数各自 try/catch —— 函数自己保证不漏异常，
+//    比指望每个调用点都记得加 catch 靠谱</span>
+async function openEdit(...)     { try { … } catch (err) { await reportActionFailure('打开编辑', err); } }
+async function removeRecord(...) { try { … } catch (err) { await reportActionFailure('删除', err); } }
+async function toggleDone(...)   { try { … } catch (err) { restoreCheckbox(id, !checked); await reportActionFailure('勾选', err); } }
+    </div>
+    <table>
+      <tr><th style="width:200px">额外处理</th><th>为什么</th></tr>
+      <tr><td><b>勾选失败要拨回复选框</b></td>
+          <td>change 事件触发时浏览器<b>已经</b>把框切到新状态了。请求失败 = 数据没存上 ——
+              不拨回去界面就在撒谎：显示"已完成"，一刷新又变回未完成</td></tr>
+      <tr><td><b>记录不存在时也要说一声</b></td>
+          <td>原来 <code>if (!target) return;</code> 是静默返回 ——
+              用户点了「编辑 / 删除」却什么都没发生，跟刚修的 Bug 是同一类毛病</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">
+    本页所有输出均为真机实跑抓取，未经修饰 ｜ my-first-site · Day 24
+  </div>
+</div>
+</body>
+</html>

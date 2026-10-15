@@ -17,6 +17,12 @@ node_modules/
 dist/
 build/
 
+# ---- 部署中转目录（Day 24 补）----
+# `tcb hosting deploy` 之前，先把"页面真正需要的 8 个文件"复制到这里 ——
+# 免得把 60 多个开发文件一起传到公网。它只是个中转站，随时能重建，
+# 但里面装着 app.js / index.html 的**副本**，误提交进去很容易和真身不同步。
+.deploy-tmp/
+
 # ---- 日志 ----
 *.log
 npm-debug.log*

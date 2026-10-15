@@ -73,6 +73,14 @@
       --overdue: #ffc152;
       --overdue-soft: rgba(255, 193, 82, 0.11);
       --overdue-line: rgba(255, 193, 82, 0.34);
+
+      /* Day 24：操作失败（删除失败、勾选失败…）。
+         为什么不直接用上面的 --ddl（同为红色系）：
+         那是"DDL 这个事物"的语义色，跟"出错了"是两回事 ——
+         混用会让以后改 DDL 配色时不小心把错误提示的颜色也改掉。 */
+      --danger: #ff6b81;
+      --danger-soft: rgba(255, 107, 129, 0.13);
+      --danger-line: rgba(255, 107, 129, 0.48);
       --ok: #3ddbd9;
 
       --tab-h: 56px;
@@ -855,6 +863,13 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+    /* Day 24：失败提示的配色。
+       让"没办成"和"办成了"在视觉上分得开 ——
+       成功是青绿的 ✓，失败是红的 !，不用读完文字就知道出事了。 */
+    .toast.is-error {
+      background: #2a1419;
+      border-color: var(--danger-line);
+    }
     .toast-check {
       display: inline-flex;
       align-items: center;
@@ -867,6 +882,10 @@
       color: #04202b;
       font-size: 12px;
       font-weight: 700;
+    }
+    .toast.is-error .toast-check {
+      background: var(--danger);
+      color: #2a1419;
     }
     .toast-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     @media (prefers-reduced-motion: reduce) {
