@@ -138,6 +138,15 @@ def scan_git_history():
         #    但那是工具文件、不是产品代码，风险远小于天天误报。
         if cur_file == 'audit-secrets.py':
             continue
+        # docs/ 也跳过 —— 和 scan_workspace 的 SKIP_DIRS 保持一致。
+        #
+        # 🔴 **Day 25 实测的第二层误报**：修完"跳过自己"之后，第 5 项又红了 ——
+        #    这次是 docs/day25/evidence.html，因为那份证据页里**原文引用**了
+        #    上面那几条误报（为了说明"这是误报"）。
+        #    于是"引用误报"本身变成了新的误报 —— **二级误报**。
+        #    文档里引用错误示例是正常写法，扫它只会自我增殖。
+        if cur_file.startswith('docs/'):
+            continue
         content = line[1:]
         if looks_whitelisted(content):
             continue

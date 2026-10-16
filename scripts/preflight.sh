@@ -49,7 +49,7 @@ printf '\n【1】公网页面能打开\n'
 PAGE="$("$NODE" -e "
 (async () => {
   try {
-    const r = await fetch('$WEB/index.html', { headers: { 'Cache-Control': 'no-cache' } });
+    const r = await fetch('$WEB/index.html', { headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(15000) });
     const t = await r.text();
     console.log([r.status, t.length, t.indexOf('<title>') > -1 ? 1 : 0].join('|'));
   } catch (e) {
@@ -70,7 +70,7 @@ printf '\n【2】打开的是应用、不是中间页\n'
 if [ "$P_STATUS" = "200" ]; then
   CHK="$("$NODE" -e "
 (async () => {
-  const r = await fetch('$WEB/index.html', { headers: { 'Cache-Control': 'no-cache' } });
+  const r = await fetch('$WEB/index.html', { headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(15000) });
   const t = await r.text();
   console.log([t.indexOf('这一周') > -1 ? 1 : 0, t.indexOf('页面访问提示') > -1 ? 1 : 0].join('|'));
 })();
@@ -93,7 +93,7 @@ printf '\n【3】接口活着\n'
 APIRES="$("$NODE" -e "
 (async () => {
   try {
-    const r = await fetch('$API/api/courses');
+    const r = await fetch('$API/api/courses', { signal: AbortSignal.timeout(15000) });
     const j = await r.json();
     console.log([r.status, j && j.ok === true ? 1 : 0, j && j.data ? j.data.length : -1].join('|'));
   } catch (e) {
@@ -110,41 +110,23 @@ fi
 
 # =====================================================================
 printf '\n【4】线上前端 == 本地前端（最容易漏的一项）\n'
-DIFF="$("$NODE" -e "
-const fs = require('fs');
-const crypto = require('crypto');
-(async () => {
-  const FILES = ['index.html','app.js','store.js','mock-data.js','manifest.json',
-                 'apple-touch-icon.png','icon-192.png','icon-512.png'];
-  const bad = [];
-  for (const f of FILES) {
-    let local = null;
-    try { local = fs.readFileSync(f); } catch (e) { bad.push(f + '（本地缺失）'); continue; }
+# 比对逻辑放在独立文件里 —— 原因见脚本头 / 该文件头的注释：
+# 内联在 shell 双引号里会偶发什么都不输出（Day 25 实测踩到）。
+DIFF_RAW="$("$NODE" scripts/preflight-compare.js "$WEB" 2>/dev/null)"
+DIFF_CODE=$?
+DIFF="$(printf '%s\n' "$DIFF_RAW" | tail -1)"
 
-    let remote = null;
-    try {
-      const r = await fetch('$WEB/' + f, { headers: { 'Cache-Control': 'no-cache' } });
-      remote = Buffer.from(await r.arrayBuffer());
-    } catch (e) { bad.push(f + '（线上拉不到）'); continue; }
-
-    if (/\.(html|js|json)$/.test(f)) {
-      const norm = (s) => s.replace(/\r\n/g, '\n').replace(/\s+\$/, '');
-      if (norm(local.toString('utf8')) !== norm(remote.toString('utf8'))) {
-        bad.push(f + '（本地 ' + local.length + ' 字节 / 线上 ' + remote.length + ' 字节）');
-      }
-    } else {
-      const h = (b) => crypto.createHash('sha256').update(b).digest('hex');
-      if (h(local) !== h(remote)) bad.push(f + '（图片 sha256 不同）');
-    }
-  }
-  console.log(bad.length + '|' + bad.join(' ／ '));
-})();
-" 2>&1 | tail -1)"
-IFS='|' read -r D_COUNT D_DETAIL <<< "$DIFF"
-if [ "${D_COUNT:-1}" = "0" ]; then
+if [ -z "$DIFF" ] || [ "$DIFF_CODE" = "2" ]; then
+  # ⚠️ 这个分支是 Day 25 补的：**「检查自己没跑起来」≠「文件不一致」**。
+  #    原来的写法在拿不到结果时会掉进 else，报成"有 N 个文件不一致" ——
+  #    把"尺子坏了"报成"东西坏了"，会让人跑去查代码，其实该查网络。
+  #    （这是一个**假红** —— 和 Day 23 那个"假绿"正好是一对。）
+  bad "比对没跑起来（退出码 $DIFF_CODE）—— 这既不算通过、也不算不一致"
+  note "多半是网络抖动。重跑一次；反复出现就先修检查本身"
+elif [ "${DIFF%%|*}" = "0" ]; then
   ok "8 个部署文件逐个比对一致（文本比内容 / 图片比 sha256）"
 else
-  bad "有 $D_COUNT 个文件线上和本地不一致：$D_DETAIL"
+  bad "有 ${DIFF%%|*} 个文件线上和本地不一致：${DIFF#*|}"
   note "多半是「改了但没部署」。部署：bash scripts/deploy-web.sh"
   note "⚠️ 刚部署完 CDN 可能要 1~2 分钟才刷新，等一会儿再跑本项"
 fi
