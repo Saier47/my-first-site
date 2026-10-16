@@ -65,6 +65,12 @@
 > 修法：三个函数各自兜住失败，失败时弹红色提示条；**勾选失败还会把复选框拨回去**
 > （否则界面就在撒谎）。实测：未捕获异常 **1 → 0**，界面反馈 **0 → 1**。
 > 新增 `check-day24.js`（29 项，带 `--selftest`）。详见 `docs/day24/evidence.html`。
+> Day 25 · 2026-10-16：🧭 **多了个「发布前检查」Skill** —— 8 项，每项都带实测值
+> `bash scripts/preflight.sh` 一次跑完：公网能开 · 不是中间页 · 接口活着 ·
+> **线上和本地一不一致** · 有没有密钥 · `.env` 被不被忽略 · 工作区干不干净 · 有没有没推的提交。
+> **为证明它不是摆设**，故意改了一行本地 `app.js` 不部署 → 第 4 项精确报出
+> 「本地 55829 / 线上 55736 字节」；还原后恢复绿。顺带抓出 `audit-secrets.py`
+> 自己的一个误报（历史扫描忘了跳过自己 → 3 条假命中）。详见 `docs/day25/evidence.html`。
 
 ---
 
@@ -126,6 +132,40 @@ python -m http.server 8000 --bind 127.0.0.1
 
 > ⚠️ 本地起的页面调的是**云端接口**（`store.js` 里的 `API_BASE` 是绝对地址）。
 > 所以断网的话，本地页面也读不到数据 —— 这和以前本地存 localStorage 时不一样。
+
+---
+
+## 发布前检查（Day 25 起）
+
+**改完代码、准备把链接发给别人验收之前，先跑一遍：**
+
+```bash
+bash scripts/preflight.sh
+```
+
+**8 项，每项都带实测值**（不是只甩一个 ✅ 给你）：
+
+| # | 查什么 | 为什么值得查 |
+|---|---|---|
+| 1 | 公网页面能打开 | 基本盘 |
+| 2 | 打开的是应用、不是腾讯云中间页 | **HTTP 200 也可能拿到那个提示页** |
+| 3 | 接口活着 | 页面在 ≠ 数据在 |
+| 4 | **线上前端 == 本地前端** ⭐ | **改了但忘了部署** —— 页面照样能开、接口照样通，只有专门比对才看得出来 |
+| 5 | 仓库里没有密钥 | 用 `audit-secrets.py`（8 类规则 + git 全历史） |
+| 6 | `.env` 被忽略 | 问 git 本人，而不是看 `.gitignore` 里写了没 |
+| 7 | 工作区干净 | 有未提交的改动 = 线上跑的可能是个半成品 |
+| 8 | 没有没推的提交 | 「我提交了」和「远端真的有」是两件事 |
+
+退出码：`0` = 全绿可以发布；`1` = 有项没过。
+
+> 🔑 **这个检查最大的风险是"假绿"。**
+> 一个**永远输出 ✅** 的检查，和**真的全绿**，在屏幕上长得一模一样。
+> 所以有两条硬要求：
+> ① 每项都输出**实测值**（状态码 / 字节数 / 命中数）—— 光一个 ✅ 不算证据；
+> ② **定期故意弄坏一项，确认它真的会红**
+> （最简单的做法：改一行本地 `app.js` 但不部署 → 第 4 项必须红，还原后必须绿）。
+>
+> 📌 完整规则与判断标准见 `.workbuddy/skills/preflight-check/SKILL.md`。
 
 ---
 
@@ -236,6 +276,7 @@ my-first-site/
 ├── day14-usertest.md Day 14 · 轻量用户测试（清单 + 记录 + 实际结果）
 ├── docs/day14/       Day 14 · 加到主屏后的样子
 ├── .workbuddy/skills/filter-interaction-check/SKILL.md
+├── .workbuddy/skills/preflight-check/SKILL.md   Day 25 · 发布前检查的规则（8 项 + 判断标准）
 │                     Day 12 · 项目内 Skill：筛选交互完整性检查
 ├── docs/day9/        Day 9 · 修前 / 修后对照截图
 ├── docs/day10/       Day 10 · 修前 / 修后对照截图
@@ -278,7 +319,8 @@ my-first-site/
 ├── audit-secrets.py  Day 23 · 独立密钥扫描器（8 类规则 + git 全历史；--selftest 自检）
 ├── scripts/
 │   ├── inject-key.sh        部署前把 Key 临时写进配置；--restore 还原
-│   └── check-no-secrets.sh  防密钥泄露五查（Day 23 起 3→5）；--install-hook 装 pre-commit
+│   ├── check-no-secrets.sh  防密钥泄露五查（Day 23 起 3→5）；--install-hook 装 pre-commit
+│   └── preflight.sh         Day 25 · 发布前检查 8 项（退出码 0=可发布）
 └── .secrets/apikey.txt  真 Key（**不进 git**，被 .gitignore 挡住）
 ```
 

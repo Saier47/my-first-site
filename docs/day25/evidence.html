@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+  docs/day25/evidence.html —— Day 25 「发布前检查」实跑证据
+
+  页面里的终端输出是 bash scripts/preflight.sh 的**真实输出**，未经修饰。
+  两次运行：
+    ① 故意弄坏（往 app.js 加了一行但没部署）→ 第【4】项必须红
+    ② 还原之后                              → 第【4】项必须绿
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 25 · 发布前检查实跑</title>
+<style>
+  :root{
+    --ink:#1a1d23;--ink-2:#4a5160;--ink-3:#7a8494;
+    --line:#e3e7ee;--bg:#fff;--soft:#f7f9fc;
+    --ok:#0f9d58;--bad:#d93025;--accent:#2f6fed;--warn:#f0b429;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 18px 50px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.65}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:13.5px;margin-bottom:22px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  .verdict{border-left:4px solid var(--ok);background:#e8f6ee}
+  .verdict h2{margin:0 0 8px;font-size:15px;color:#0b5c34}
+  .verdict p{margin:0;font-size:13.5px;color:#0b5c34}
+  .term{border-radius:10px;overflow:hidden;border:1px solid #2a3140;background:#12151c;
+        margin-bottom:6px}
+  .term.bad-edge{border-color:#d93025;box-shadow:0 0 0 2px rgba(217,48,37,.18)}
+  .term-bar{display:flex;align-items:center;gap:7px;padding:9px 13px;background:#1a1f29;
+            border-bottom:1px solid #2a3140}
+  .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+  .term-title{margin-left:6px;font-size:12.5px;color:#9aa7bd;
+              font-family:Consolas,"Cascadia Mono",monospace}
+  pre{margin:0;padding:14px 16px;color:#d7e3f4;overflow-x:auto;
+      font-family:Consolas,"Cascadia Mono",monospace;font-size:12px;line-height:1.62}
+  .l{display:block;white-space:pre}
+  .ok{color:#5ddb9a}
+  .no{color:#ff8a8a;font-weight:700}
+  .hd{color:#8ab4ff;font-weight:600}
+  .dim{color:#6d7a92}
+  .arrow{color:#8b98ae}
+  .hl{background:rgba(217,48,37,.20);border-radius:3px}
+  .hlg{background:rgba(15,157,88,.20);border-radius:3px}
+  .caption{font-size:13px;color:var(--ink-3);margin:2px 0 18px}
+  .note{background:#fff8e6;border-left:3px solid var(--warn);padding:11px 14px;
+        border-radius:0 8px 8px 0;font-size:12.5px;color:#6b4c00;margin-top:12px}
+  code{background:var(--soft);padding:1px 6px;border-radius:4px;
+       font-family:Consolas,monospace;font-size:12px;color:#c0392b}
+  .foot{color:var(--ink-3);font-size:12px;text-align:center;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 25 · 「发布前检查」实跑验证</h1>
+  <div class="sub">
+    命令 ｜ <code>bash scripts/preflight.sh</code> ｜ 8 项检查 ｜ 2026-10-16
+  </div>
+
+  <div class="card verdict">
+    <h2>✅ 这次演示要证明的一件事</h2>
+    <p>
+      故意往 <b>本地 <code>app.js</code> 加了一行、但不部署</b> —— 制造「改了但忘了上线」。
+      检查必须能<b>抓到它、并说清差在哪</b>；还原之后必须恢复绿。
+      <br><b>如果弄坏了它还是全绿，那这个检查就是摆设。</b>
+    </p>
+  </div>
+
+  <!-- ============ 第一次：故意弄坏 ============ -->
+  <div class="term bad-edge">
+    <div class="term-bar">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="term-title">① 故意弄坏之后 —— 改了 app.js，没部署</span>
+    </div>
+<pre><span class="l dim">════════════════════════════════════════════════════════</span><span class="l dim">  发布前检查 · my-first-site       2026-10-16 22:12:49</span><span class="l dim">════════════════════════════════════════════════════════</span><span class="l"> </span><span class="l hd">【1】公网页面能打开</span><span class="l">     <span class="ok">✅</span>  HTTP 200 · 43879 字节 · 含 &lt;title&gt;</span><span class="l"> </span><span class="l hd">【2】打开的是应用、不是中间页</span><span class="l">     <span class="ok">✅</span>  含「这一周」· 不含「页面访问提示」</span><span class="l"> </span><span class="l hd">【3】接口活着</span><span class="l">     <span class="ok">✅</span>  GET /api/courses → 200 · ok:true · 10 条</span><span class="l"> </span><span class="l hd">【4】线上前端 == 本地前端（最容易漏的一项）</span><span class="l hl">     <span class="no">❌</span>  有 1 个文件线上和本地不一致：app.js（本地 55829 字节 / 线上 55736 字节）</span><span class="l hl arrow">         ↳ 多半是「改了但没部署」。部署：bash scripts/deploy-web.sh</span><span class="l"> </span><span class="l hd">【5】仓库里没有密钥</span><span class="l">     <span class="ok">✅</span>  audit-secrets.py → 0 命中（8 类规则 · 工作区 + git 全历史）</span><span class="l"> </span><span class="l hd">【6】.env 被忽略</span><span class="l">     <span class="ok">✅</span>  .env 命中忽略规则（.gitignore:2:.env）</span><span class="l"> </span><span class="l hd">【7】工作区干净</span><span class="l">     <span class="no">❌</span>  有 4 处未提交的改动</span><span class="l dim">          M app.js   M audit-secrets.py</span><span class="l dim">         ?? .workbuddy/skills/preflight-check/   ?? scripts/preflight.sh</span><span class="l"> </span><span class="l hd">【8】没有没推的提交</span><span class="l">     <span class="ok">✅</span>  本地 HEAD == 远端实时</span><span class="l dim">         ↳ ef2fa36c8a08  ·  远端实时（ls-remote）</span><span class="l"> </span><span class="l dim">════════════════════════════════════════════════════════</span><span class="l">  8 项检查：6 通过 · <span class="no">2 失败</span></span><span class="l dim">════════════════════════════════════════════════════════</span><span class="l"> </span><span class="l no">  ❌ 有 2 项没过，先别发布：</span><span class="l no">  · 有 1 个文件线上和本地不一致：app.js（本地 55829 字节 / 线上 55736 字节）</span><span class="l no">  · 有 4 处未提交的改动</span></pre>
+  </div>
+  <div class="caption">
+    ↑ <b>第【4】项精确报出了"哪个文件、差多少"</b> —— 不是笼统地说"部署有问题"。
+    注意前 3 项<b>全是绿的</b>（页面能开、接口是通的），只有专门比对才看得出来。
+  </div>
+
+  <!-- ============ 第二次：还原 ============ -->
+  <div class="term">
+    <div class="term-bar">
+      <span class="dot" style="background:#ff5f57"></span>
+      <span class="dot" style="background:#febc2e"></span>
+      <span class="dot" style="background:#28c840"></span>
+      <span class="term-title">② 把那一行还原之后</span>
+    </div>
+<pre><span class="l dim">  发布前检查 · my-first-site       2026-10-16 22:13:14</span><span class="l"> </span><span class="l hd">【4】线上前端 == 本地前端（最容易漏的一项）</span><span class="l hlg">     <span class="ok">✅</span>  8 个部署文件逐个比对一致（文本比内容 / 图片比 sha256）</span><span class="l"> </span><span class="l dim">  （第 1/2/3/5/6/8 项同上一轮，都是 ✅，这里省略）</span><span class="l"> </span><span class="l dim">════════════════════════════════════════════════════════</span><span class="l">  8 项检查：7 通过 · <span class="no">1 失败</span></span><span class="l dim">════════════════════════════════════════════════════════</span><span class="l"> </span><span class="l no">  ❌ 有 1 项没过，先别发布：</span><span class="l no">  · 有 3 处未提交的改动</span></pre>
+  </div>
+  <div class="caption">
+    ↑ 第【4】项恢复绿。剩下那个 ❌ 是<b>第【7】项（工作区未提交）</b> ——
+    这是<b>正确</b>的：我们今天刚建了 Skill 和脚本，还没提交。
+    <b>提交之后它会一起变绿</b>（见交付说明里的收尾验证）。
+  </div>
+
+  <div class="card note">
+    <b>为什么这个演示要专门做：</b>一个<b>永远输出 ✅</b> 的检查，和<b>真的全绿</b>，
+    在屏幕上长得一模一样。所以判断一个检查有没有用，不能看它平时绿不绿 ——
+    <b>要看它被弄坏时会不会红、红得准不准。</b>
+    这一步今天做完，顺带还抓出了 <code>audit-secrets.py</code> 自己的一个误报
+    （历史扫描忘了跳过自己 → 报出 3 条假命中）。
+  </div>
+
+  <div class="foot">
+    两段终端输出均为 bash scripts/preflight.sh 的真实运行结果，未经修饰 ｜ my-first-site · Day 25
+  </div>
+</div>
+</body>
+</html>

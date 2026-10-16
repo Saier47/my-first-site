@@ -47,7 +47,8 @@ PATTERNS = [
      '写死的口令/令牌（值长度 >= 8，允许 db_password 这类带前缀的变量名）'),
     ('Postgres 连接串带密码',
      re.compile(r'postgres(?:ql)?://[^:/\s]+:[^@/\s]{4,}@'),
-     'postgres://user:password@host 形式'),
+     # 说明文字故意拆开写 —— 不然这句"举例"会被自己的正则命中（Day 25 修）
+     'postgres' + '://user:password@host 形式'),
     ('阿里云/通用 AccessKey 头',
      re.compile(r'LTAI[A-Za-z0-9]{12,}'),
      '阿里云 AccessKeyId 形状'),
@@ -124,6 +125,18 @@ def scan_git_history():
             cur_file = line[6:]
             continue
         if not line.startswith('+') or line.startswith('+++'):
+            continue
+        # ⚠️ 扫描器自己的文件跳过 —— 理由和 scan_workspace 里那条一样：
+        #    它里面的"密钥形状"必然是规则文本和编的自检样本，不是真泄露。
+        #
+        # 🔴 **Day 25 发现的疏漏**：scan_workspace() 有这个判断，这里**忘了加**。
+        #    后果是历史扫描报出 3 条假命中（全是本文件自己的规则说明和样本）——
+        #    而假命中比漏报更能毁掉一个检查：用户看到红的，
+        #    查完发现是虚惊，下次就再也不信它了。
+        #
+        #    取舍说明：跳过自己意味着"真有人把密钥写进这个脚本"会漏掉 ——
+        #    但那是工具文件、不是产品代码，风险远小于天天误报。
+        if cur_file == 'audit-secrets.py':
             continue
         content = line[1:]
         if looks_whitelisted(content):
