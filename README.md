@@ -1,5 +1,9 @@
 # my-first-site｜这一周 · 课表与 DDL 助手
 
+> **v1.0.0** · 2026-10-18 正式发布（tag `v1.0.0` = commit `7c6bdbd`）
+> 公网：https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html
+> 页面标题旁会显示当前版本号 —— 出问题时能直接报"我看的是哪个版本"。
+
 打开就是「这一周」的网页：**固定课程和一次性 DDL 叠在同一根时间轴上**。
 手动录入 30 秒能录完，不需要账号，不需要注册 —— **打开就能用**。
 数据存在云上，换个设备打开看到的是同一份。
@@ -71,6 +75,14 @@
 > **为证明它不是摆设**，故意改了一行本地 `app.js` 不部署 → 第 4 项精确报出
 > 「本地 55829 / 线上 55736 字节」；还原后恢复绿。顺带抓出 `audit-secrets.py`
 > 自己的一个误报（历史扫描忘了跳过自己 → 3 条假命中）。详见 `docs/day25/evidence.html`。
+> Day 26 · 2026-10-18：🚀 **发布 v1.0.0 + 做了一次真实回滚演练**
+> 打了第一个 tag（`v1.0.0` = `7c6bdbd`），页面标题旁开始显示版本号。
+> **回滚上传只花 4 秒**（整条链路约 15 秒）。核心认知：
+> **CloudBase 静态托管没有版本管理**（`deploy` 帮助原文：`no version management`），
+> 云函数那套 `publish-version` / `config-route` 一个都用不了 ——
+> **回滚只能拿旧 commit 的文件重传，没有"点一下回去"的安全网**。
+> 新增 `scripts/rollback-web.sh`（一条命令回滚，含校验与计时）和 `docs/day26/回滚手册.md`
+> （含"什么情况必须回滚"判断表）。详见 `docs/day26/交付说明.md`。
 
 ---
 
@@ -320,7 +332,8 @@ my-first-site/
 ├── scripts/
 │   ├── inject-key.sh        部署前把 Key 临时写进配置；--restore 还原
 │   ├── check-no-secrets.sh  防密钥泄露五查（Day 23 起 3→5）；--install-hook 装 pre-commit
-│   └── preflight.sh         Day 25 · 发布前检查 8 项（退出码 0=可发布）
+│   ├── preflight.sh         Day 25 · 发布前检查 8 项（退出码 0=可发布）
+│   └── rollback-web.sh      Day 26 · 静态托管回滚到任意 git 版本（含校验、列变化、计时）
 └── .secrets/apikey.txt  真 Key（**不进 git**，被 .gitignore 挡住）
 ```
 

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!--
+  docs/day26/evidence.html —— Day 26 · v1.0 发布 + 回滚演练证据
+
+  ⚠️ 诚实说明：页面部分都是**真实截图**（自动化浏览器拍的线上页面）。
+     地址不是浏览器外框（自动化工具截不到），而是用「访问地址」卡片单独列出 ——
+     真实 URL、真实字节数、真实徽标状态，都可以自己复核。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day 26 · v1.0 发布与回滚演练</title>
+<style>
+  :root{--ink:#1a1d23;--ink-2:#4a5160;--ink-3:#7a8494;--line:#e3e7ee;--bg:#fff;
+        --soft:#f7f9fc;--ok:#0f9d58;--bad:#d93025;--accent:#2f6fed;--warn:#f0b429;}
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 18px 50px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.65}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 6px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:13.5px;margin-bottom:22px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:18px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  h2{font-size:16px;margin:0 0 12px;padding-bottom:9px;border-bottom:1px solid var(--line);
+     display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+        border-radius:6px;background:var(--accent);color:#fff;font-size:12.5px;flex:0 0 auto}
+  h2 .tag{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:20px;
+          background:#e8f6ee;color:#0b5c34;margin-left:auto}
+  h2 .tag.red{background:#fdecea;color:#8a1f17}
+
+  /* 「访问地址」卡片 —— 不假装成浏览器地址栏，但把 URL 摆清楚 */
+  .url{display:flex;align-items:center;gap:9px;background:#0f1729;color:#c9d6ea;
+       border-radius:8px;padding:9px 13px;margin-bottom:11px;
+       font-family:Consolas,"Cascadia Mono",monospace;font-size:12px;overflow:hidden}
+  .url .k{flex:0 0 auto;color:#7c8db5;font-size:11px}
+  .url .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8ab4ff}
+
+  .shot{border:1px solid #2a3140;border-radius:9px;overflow:hidden;background:#080b14}
+  .shot img{display:block;width:100%;height:auto}
+
+  .facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:11px}
+  .fact{flex:1 1 150px;background:var(--soft);border:1px solid var(--line);
+        border-radius:8px;padding:9px 12px;font-size:12.5px}
+  .fact b{display:block;font-size:11px;color:var(--ink-3);font-weight:600;margin-bottom:3px}
+  .fact span{font-family:Consolas,monospace;font-size:12.5px}
+  .yes{color:var(--ok);font-weight:700}
+  .no{color:var(--bad);font-weight:700}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+  th{background:var(--soft);font-weight:600;color:var(--ink-2);font-size:12.5px}
+  .note{background:#fff8e6;border-left:3px solid var(--warn);padding:11px 14px;
+        border-radius:0 8px 8px 0;font-size:12.5px;color:#6b4c00;margin-top:12px}
+  code{background:var(--soft);padding:1px 6px;border-radius:4px;
+       font-family:Consolas,monospace;font-size:12px;color:#c0392b}
+  .foot{color:var(--ink-3);font-size:12px;text-align:center;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 26 · v1.0 发布 + 静态托管回滚演练</h1>
+  <div class="sub">
+    my-first-site ｜ 2026-10-18 ｜ tag <code>v1.0.0</code> = commit <code>7c6bdbd</code>
+    ｜ 回滚目标 <code>ef2fa36</code>（Day 24）
+  </div>
+
+  <!-- ============ 结论 ============ -->
+  <div class="card">
+    <h2>一句话结论</h2>
+    <table>
+      <tr><th style="width:140px">环节</th><th>结果</th></tr>
+      <tr><td>发布 v1.0</td><td class="yes">✅ 8/8 全绿，公网可访问，页面上显示 v1.0.0</td></tr>
+      <tr><td>回滚演练</td><td class="yes">✅ 成功 · <b>上传用时 4 秒</b>（含导出/校验/确认约 15 秒）</td></tr>
+      <tr><td>恢复 v1.0</td><td class="yes">✅ 成功 · <b>上传用时 4 秒</b>，页面重新显示 v1.0.0</td></tr>
+    </table>
+    <div class="note">
+      <b>最要紧的一条认知：</b>CloudBase 静态托管<b>没有版本管理</b>
+      （<code>tcb hosting deploy</code> 的帮助原文：<code>no version management</code>），
+      云函数那套 <code>publish-version</code> / <code>config-route</code> 在这儿<b>一个都用不了</b>。
+      所以"回滚"= <b>拿旧 commit 的文件重新传一遍</b>，没有"点一下回去"的安全网。
+    </div>
+  </div>
+
+  <!-- ============ ① v1.0 ============ -->
+  <div class="card">
+    <h2><span class="n">1</span>v1.0 公网可访问<span class="tag">发布后</span></h2>
+    <div class="url">
+      <span class="k">访问地址</span>
+      <span class="v">https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html</span>
+    </div>
+    <div class="shot"><img src="page-v1.png" alt="v1.0 页面"></div>
+    <div class="facts">
+      <div class="fact"><b>标题旁版本徽标</b><span class="yes">v1.0.0</span></div>
+      <div class="fact"><b>index.html 字节</b><span>44445</span></div>
+      <div class="fact"><b>preflight</b><span class="yes">8 / 8 全绿</span></div>
+    </div>
+  </div>
+
+  <!-- ============ ② 回滚后 ============ -->
+  <div class="card">
+    <h2><span class="n">2</span>回滚到 ef2fa36 之后<span class="tag red">线上是旧版</span></h2>
+    <div class="url">
+      <span class="k">访问地址</span>
+      <span class="v">https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html</span>
+    </div>
+    <div class="shot"><img src="page-rolledback.png" alt="回滚后的页面"></div>
+    <div class="facts">
+      <div class="fact"><b>版本徽标</b><span class="no">不见了 ← 回滚生效</span></div>
+      <div class="fact"><b>index.html 字节</b><span>43879（v1.0 是 44445）</span></div>
+      <div class="fact"><b>preflight 第【4】项</b><span class="no">❌ 线上≠本地</span></div>
+    </div>
+    <div class="note">
+      <b>第【4】项报红不是 bug，是铁证</b> —— 本地还是 v1.0、线上已经是旧版，
+      所以"不一致"恰好说明<b>回滚真的发生了</b>。
+      Day 25 做的那个检查，今天正好用来给回滚作证。
+    </div>
+  </div>
+
+  <!-- ============ ③ 恢复 ============ -->
+  <div class="card">
+    <h2><span class="n">3</span>恢复 v1.0 之后<span class="tag">已回到最新</span></h2>
+    <div class="url">
+      <span class="k">访问地址</span>
+      <span class="v">https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html</span>
+    </div>
+    <div class="shot"><img src="page-restored.png" alt="恢复后的页面"></div>
+    <div class="facts">
+      <div class="fact"><b>版本徽标</b><span class="yes">v1.0.0 回来了</span></div>
+      <div class="fact"><b>index.html 字节</b><span>44445</span></div>
+      <div class="fact"><b>上传用时</b><span>4 秒</span></div>
+    </div>
+  </div>
+
+  <!-- ============ 提交记录 ============ -->
+  <div class="card">
+    <h2><span class="n">4</span>回滚前后的提交记录</h2>
+    <div class="url">
+      <span class="k">命令</span>
+      <span class="v">git log --oneline --decorate -8</span>
+    </div>
+<pre style="margin:0;background:#0f1729;color:#c9d6ea;border-radius:8px;padding:14px 16px;
+            font-family:Consolas,monospace;font-size:12px;line-height:1.75;overflow-x:auto"><span style="color:#5ddb9a;font-weight:700">7c6bdbd</span> <span style="color:#8ab4ff">(HEAD -&gt; main, tag: v1.0.0, origin/main, origin/HEAD)</span> Day 26｜发布 v1.0.0：页面显示版本号 + 静态托管回滚脚本
+3461c7e Day 25｜补交付说明与收尾验证截图
+378eb57 Day 25｜修发布前检查自身的两处问题（收尾验证抓出来的）
+6e08863 Day 25｜新增发布前检查 Skill：8 项逐项带实测值
+<span style="color:#ffd479;font-weight:700">ef2fa36</span> Day 24｜修复删除/编辑/勾选失败时界面完全静默的 Bug   <span style="color:#ff8a8a">← 回滚目标</span>
+b732ab3 Day 23｜密钥排查 + 三类错误提示统一
+00485c2 Day 22｜PATCH / DELETE 上线：四类操作闭环打通
+dbd7893 Day 21｜第 3 周验收：28 条逐项判定，缺项如实标 FAIL</pre>
+    <div class="note">
+      <b>回滚不会改动 git 历史</b> —— 它只改"线上跑的是哪个版本的文件"。
+      所以事后能指认"当时退到了哪儿"的，只有这两样：<b>tag <code>v1.0.0</code></b> 和
+      <b>回滚手册里记的时间点 + 目标 commit</b>。
+    </div>
+  </div>
+
+  <div class="foot">
+    页面截图均为真实线上页面（自动化浏览器实拍）；地址以「访问地址」卡片列出，可自行打开复核 ｜ my-first-site · Day 26
+  </div>
+</div>
+</body>
+</html>
