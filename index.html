@@ -138,6 +138,23 @@
       /* 标题微光：整页只有这里和"今天"带 glow，多了就俗 */
       text-shadow: 0 0 22px rgba(61, 219, 217, 0.42);
     }
+    /* Day 26：发布版本号（v1.0.0 起显示）。
+       为什么要显示：出问题时用户能一眼报出"我看的是哪个版本"，
+       不用再靠"你刷新一下试试"来猜。
+       回滚演练时它也是最直观的对照 —— 页面上的版本号退回旧的，就说明真的退回去了。 */
+    .top .ver {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-line);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      vertical-align: 5px;   /* 贴住标题基线，不把行高撑开 */
+    }
     .top .sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
     .top .sub #week-range { color: var(--accent); font-variant-numeric: tabular-nums; }
     /* Day 20：数据同步状态。比副标题再轻一档 —— 它是"备注"，不该跟标题抢注意力。
@@ -1132,7 +1149,7 @@
 
   <!-- 顶部：产品标题 + 当前这一周的范围（范围由 app.js 填） -->
   <header class="top">
-    <h1>这一周</h1>
+    <h1>这一周<span class="ver" title="发布版本">v1.0.0</span></h1>
     <p class="sub">课表与 DDL 叠在同一根时间轴上 · <span id="week-range">周一到周日</span></p>
     <!-- Day 20 余力加练：数据同步状态。
          数据现在放在云上（不是自己电脑里），"这份数据是什么时候取回来的"

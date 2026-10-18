@@ -80,7 +80,7 @@ const db = require('./db');
 const PORT = 9000;
 
 // Day 19：拆出数据访问层（0.3.0 → 0.4.0）。Day 22：补上 PATCH / DELETE（→ 0.5.0）。
-const VERSION = '0.6.0';
+const VERSION = '1.0.0';
 
 // 请求体上限。课表一条记录最多几百字节，64KB 绰绰有余。
 // 设上限是为了防止有人发个巨大请求把内存撑爆（一种最朴素的攻击）。
