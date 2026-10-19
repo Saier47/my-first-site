@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 27 · 资源额度检查</title>
+<style>
+  :root{--ink:#1a1d23;--ink-2:#4a5160;--ink-3:#7a8494;--line:#e3e7ee;--bg:#fff;
+        --soft:#f7f9fc;--ok:#0f9d58;--bad:#d93025;--accent:#2f6fed;--warn:#f0b429;}
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 18px 46px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.65}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 6px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:13.5px;margin-bottom:20px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:17px 20px;margin-bottom:15px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  h2{font-size:15.5px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:12px 14px}
+  .kpi b{display:block;font-size:11.5px;color:var(--ink-3);font-weight:600;margin-bottom:5px}
+  .kpi .v{font-size:17px;font-weight:700;font-family:Consolas,monospace;letter-spacing:-.3px}
+  .kpi .u{font-size:11.5px;color:var(--ink-3);font-weight:400;margin-left:3px}
+  .bar{height:9px;background:#e9edf4;border-radius:99px;overflow:hidden;margin:13px 0 6px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#3ddbd9,#4d7cfe);border-radius:99px}
+  .barlbl{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3)}
+  pre{margin:0;background:#0f1729;color:#c9d6ea;border-radius:8px;padding:13px 15px;
+      font-family:Consolas,"Cascadia Mono",monospace;font-size:11.8px;line-height:1.6;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
+  th{background:var(--soft);font-weight:600;color:var(--ink-2);font-size:12.5px}
+  td.n{font-family:Consolas,monospace;text-align:right}
+  .zero{color:var(--ink-3)}
+  .note{background:#fff8e6;border-left:3px solid var(--warn);padding:11px 14px;
+        border-radius:0 8px 8px 0;font-size:12.5px;color:#6b4c00;margin-top:12px}
+  .good{background:#e8f6ee;border-left:3px solid var(--ok);color:#0b5c34}
+  code{background:var(--soft);padding:1px 6px;border-radius:4px;
+       font-family:Consolas,monospace;font-size:12px;color:#c0392b}
+  .foot{color:var(--ink-3);font-size:12px;text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 27 · CloudBase 资源额度检查</h1>
+  <div class="sub">
+    环境 <code>my-first-site-d0g3re4p71560e327</code> ｜ 2026-10-19 ｜
+    数据来自 <code>tcb env usage</code> 与 <code>tcb env list</code>（真实输出）
+  </div>
+
+  <!-- KPI -->
+  <div class="card">
+    <h2>一眼看结论</h2>
+    <div class="grid">
+      <div class="kpi"><b>套餐</b><span class="v" style="font-size:15px">体验版</span></div>
+      <div class="kpi"><b>到期时间</b><span class="v" style="font-size:14px">2027-04-04</span></div>
+      <div class="kpi"><b>本周期已用</b><span class="v">19.80<span class="u">/ 3000 点</span></span></div>
+      <div class="kpi"><b>占比</b><span class="v" style="color:#0f9d58">0.66%</span></div>
+    </div>
+    <div class="bar"><i style="width:0.66%"></i></div>
+    <div class="barlbl"><span>计费周期 2026-10-04 ~ 2026-11-04</span><span>剩余 2980.20 点</span></div>
+    <div class="note good">
+      <b>结论：额度完全够用，不是瓶颈。</b>
+      整个周期才用掉 <b>0.66%</b> —— 按这个速度，一个月也用不到 1/50。
+    </div>
+  </div>
+
+  <!-- 明细 -->
+  <div class="card">
+    <h2>各模块用量明细</h2>
+    <table>
+      <tr><th>模块</th><th style="width:120px">资源点</th><th style="width:110px">套餐内</th><th>说明</th></tr>
+      <tr><td>API calls</td><td class="n">10.10</td><td class="n">10.10</td><td>前端调接口（我们开发时跑了不少自检，也在这里面）</td></tr>
+      <tr><td>Cloud function</td><td class="n">6.23</td><td class="n">6.23</td><td>云函数执行</td></tr>
+      <tr><td>HTTP gateway</td><td class="n">3.46</td><td class="n">3.46</td><td>网关转发</td></tr>
+      <tr><td>Cloud storage</td><td class="n">0.01</td><td class="n">0.01</td><td>8 个静态文件的存储</td></tr>
+      <tr><td class="zero">Static website hosting</td><td class="n zero">0</td><td class="n zero">0</td><td class="zero">静态托管本身不计点</td></tr>
+      <tr><td class="zero">NoSQL / MySQL / AI / 认证 / 容器 / 工作流</td><td class="n zero">0</td><td class="n zero">0</td><td class="zero">本项目没用到</td></tr>
+      <tr><td><b>合计</b></td><td class="n"><b>19.80</b></td><td class="n"><b>19.80</b></td><td>按量付费 <b>0.00</b>（没超额）</td></tr>
+    </table>
+  </div>
+
+  <!-- 原始输出 -->
+  <div class="card">
+    <h2>原始输出（可自行复核）</h2>
+<pre>i Current billing cycle: 2026-10-04 ~ 2026-11-04
+i In-package resource points: 19.80 used / 3000.00 total
+i Resource pack usage: 0.00 points
+i Pay-as-you-go usage: 0.00 points
+
+Environment ID                    Package  Expiration time       Status
+my-first-site-d0g3re4p71560e327   体验版    2027-04-04 23:59:59   Normal
+
+DescribeBillingInfo:
+  PackageId  : baas_trial
+  ExpireTime : 2027-04-04 23:59:59
+  IsAutoRenew: false          ← ⚠️ 不会自动续费
+  EnableOverrun: false        ← 超额不会自动转按量付费，会直接停</pre>
+  </div>
+
+  <!-- 风险 -->
+  <div class="card">
+    <h2>⚠️ 两个要记住的风险</h2>
+    <table>
+      <tr><th style="width:170px">项</th><th>意味着什么</th></tr>
+      <tr><td><b>不自动续费</b></td>
+          <td><b>2027-04-04 23:59:59 到期后，网站会直接打不开。</b>
+              不会有人提醒你，也不会自动扣费 —— 到时候是"突然发现挂了"</td></tr>
+      <tr><td><b>不自动超额</b></td>
+          <td>额度用完也不会自动转按量付费（<code>EnableOverrun: false</code>），
+              而是<b>直接停</b>。不过按现在 0.66% 的用量，这不是近期风险</td></tr>
+    </table>
+    <div class="note">
+      <b>建议：</b>在手机日历里加一个 <b>2027-03-04</b> 的提醒（到期前一个月），
+      标题写「my-first-site 环境要到期了」。现在就加，别指望到时候能想起来。
+    </div>
+  </div>
+
+  <div class="foot">
+    以上数值均为 CloudBase CLI 真实返回，未做修饰 ｜ my-first-site · Day 27
+  </div>
+</div>
+</body>
+</html>
