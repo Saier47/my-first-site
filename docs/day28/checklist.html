@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 28 · 结营验收清单</title>
+<style>
+  :root{--ink:#1a1d23;--ink-2:#4a5160;--ink-3:#7a8494;--line:#e3e7ee;--bg:#fff;
+        --soft:#f7f9fc;--ok:#0f9d58;--bad:#d93025;--accent:#2f6fed;--warn:#f0b429;}
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 18px 44px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 5px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:18px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:16px 19px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  .hero{border-left:4px solid var(--ok);background:#e8f6ee;display:flex;
+        align-items:center;gap:16px;padding:14px 19px}
+  .hero .big{font-size:30px;font-weight:800;color:#0b5c34;line-height:1;font-family:Consolas,monospace}
+  .hero .txt{font-size:13px;color:#0b5c34}
+  h2{font-size:14.5px;margin:0 0 9px;padding-bottom:7px;border-bottom:1px solid var(--line);
+     color:var(--ink-2)}
+  table{width:100%;border-collapse:collapse;font-size:12.8px}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--soft);font-weight:600;color:var(--ink-2);font-size:12px;text-align:left}
+  td.c{text-align:center;width:38px}
+  td.ev{font-family:Consolas,monospace;font-size:11.8px;color:var(--ink-2)}
+  .tick{color:var(--ok);font-weight:800;font-size:15px}
+  .day{display:inline-block;font-size:10.5px;color:var(--ink-3);background:var(--soft);
+       border-radius:4px;padding:0 4px;margin-left:4px}
+  .note{background:#fff8e6;border-left:3px solid var(--warn);padding:10px 13px;
+        border-radius:0 8px 8px 0;font-size:12.3px;color:#6b4c00;margin-top:11px}
+  code{background:var(--soft);padding:1px 5px;border-radius:4px;
+       font-family:Consolas,monospace;font-size:11.8px;color:#c0392b}
+  .foot{color:var(--ink-3);font-size:11.5px;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>结营验收清单（自拟 15 项 · 附录 J 拿不到时用）</h1>
+  <div class="sub">
+    my-first-site <b>v1.0.0</b> ｜ 2026-10-20 ｜ 每一项都是<b>当场真跑</b>的，写入类会真写进库再删干净
+  </div>
+
+  <div class="card hero">
+    <div class="big">15 / 15</div>
+    <div class="txt">
+      <b>全部通过。</b>　其中第 12 项（发布前检查）在推送后重跑一次确认 <b>8/8</b>；
+      第 9 项（手机宽度）用 Day 27 的实机测量结果（390 / 390，无横向溢出）。
+    </div>
+  </div>
+
+  <!-- A -->
+  <div class="card">
+    <h2>A · 能不能打开</h2>
+    <table>
+      <tr><th style="width:34px">#</th><th>验收项</th><th style="width:44px">结果</th><th style="width:330px">实测证据</th></tr>
+      <tr><td>1</td><td>公网首页能打开</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">HTTP 200 · 44445 字节 · 含 &lt;title&gt;</td></tr>
+      <tr><td>2</td><td>打开的是应用，不是腾讯云中间页</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">含「这一周」· 不含「页面访问提示」</td></tr>
+      <tr><td>3</td><td>数据接口活着</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">GET /api/courses → 200 · ok:true · 10 条</td></tr>
+    </table>
+  </div>
+
+  <!-- B -->
+  <div class="card">
+    <h2>B · 能不能写（清单点名的三件：线上写入 + 刷新后持久化）</h2>
+    <table>
+      <tr><th style="width:34px">#</th><th>验收项</th><th style="width:44px">结果</th><th style="width:330px">实测证据（真写进库再删）</th></tr>
+      <tr><td>4</td><td><b>POST 写入后，重新读取还在</b></td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">id=d28check_… 已入库，再 GET 读到</td></tr>
+      <tr><td>5</td><td><b>PATCH 改完，重新读取是新值</b></td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">标题变成「Day28 改了名（自删）」</td></tr>
+      <tr><td>6</td><td><b>DELETE 删完，重新读取没有了</b></td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">已从库里消失 · 最终 10 条 0 残留</td></tr>
+    </table>
+  </div>
+
+  <!-- C -->
+  <div class="card">
+    <h2>C · 功能完整</h2>
+    <table>
+      <tr><th style="width:34px">#</th><th>验收项</th><th style="width:44px">结果</th><th style="width:330px">实测证据</th></tr>
+      <tr><td>7</td><td>三个视图都在（一周 / 清单 / 今天）</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">#/week　#/courses　#/today</td></tr>
+      <tr><td>8</td><td>四种状态的样式都在</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">加载中（骨架屏）/ 空 / 出错 / 有数据</td></tr>
+      <tr><td>9</td><td>手机宽度不溢出</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">390 / 390 无溢出 <span class="day">Day 27 实测</span></td></tr>
+      <tr><td>10</td><td>错误提示是人话（中文、可操作）</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">没成功 / 请填 / 请选 / 连不上 / 刷新一下</td></tr>
+      <tr><td>11</td><td>页面上能看到版本号</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">标题旁显示 <b>v1.0.0</b></td></tr>
+    </table>
+  </div>
+
+  <!-- D -->
+  <div class="card">
+    <h2>D · 交付与运维</h2>
+    <table>
+      <tr><th style="width:34px">#</th><th>验收项</th><th style="width:44px">结果</th><th style="width:330px">实测证据</th></tr>
+      <tr><td>12</td><td><b>发布前检查 8 项全绿</b></td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">bash scripts/preflight.sh → 8/8 · 退出码 0</td></tr>
+      <tr><td>13</td><td><b>仓库里没有密钥</b></td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">audit-secrets.py → 0 命中（8 类规则 · 工作区 + git 全历史）</td></tr>
+      <tr><td>14</td><td><b>回滚流程可执行</b></td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">rollback-web.sh v1.0.0 --dry-run → 成功导出 8 个文件</td></tr>
+      <tr><td>15</td><td>关键文档齐全</td><td class="c"><span class="tick">✓</span></td>
+          <td class="ev">README / PRD / api-contract / AGENTS / 回滚手册 / 发布前检查规则</td></tr>
+    </table>
+    <div class="note">
+      <b>⚠️ 两项要说明：</b>
+      ① 这份清单是<b>自拟的</b>（手册里的「附录 J」拿不到），条目按 28 天实际交付反推；
+      ② 清单要求的「第三方真人试用」<b>未执行</b>（Day 27 找不到人），已在复盘第五节如实标注。
+    </div>
+  </div>
+
+  <div class="foot">
+    全部结果来自 check-day28.js / preflight.sh / rollback-web.sh 的真实运行输出，未做修饰 ｜ my-first-site v1.0.0
+  </div>
+</div>
+</body>
+</html>

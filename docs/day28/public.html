@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 28 · 作品公网 v1.0.0</title>
+<style>
+  :root{--ink:#1a1d23;--ink-2:#4a5160;--ink-3:#7a8494;--line:#e3e7ee;--bg:#fff;
+        --soft:#f7f9fc;--ok:#0f9d58;--accent:#2f6fed;}
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 18px 40px;background:var(--soft);color:var(--ink);
+       font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 5px;letter-spacing:-.2px}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:16px}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+        padding:16px 19px;margin-bottom:14px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+  .url{display:flex;align-items:flex-start;gap:10px;background:#0f1729;color:#c9d6ea;
+       border-radius:9px;padding:11px 14px;
+       font-family:Consolas,"Cascadia Mono",monospace;font-size:12.5px;overflow:hidden}
+  .url .k{flex:0 0 auto;color:#7c8db5;font-size:11px;padding-top:2px}
+  .url .v{word-break:break-all;color:#8ab4ff;line-height:1.5}
+  .shot{border:1px solid #2a3140;border-radius:9px;overflow:hidden;background:#080b14;margin-top:12px}
+  .shot img{display:block;width:100%;height:auto}
+  .facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .fact{flex:1 1 160px;background:var(--soft);border:1px solid var(--line);
+        border-radius:8px;padding:9px 12px;font-size:12.5px}
+  .fact b{display:block;font-size:11px;color:var(--ink-3);font-weight:600;margin-bottom:3px}
+  .fact span{font-family:Consolas,monospace;font-size:12.5px;color:var(--ok);font-weight:600}
+  .note{background:#fff8e6;border-left:3px solid #f0b429;padding:10px 13px;
+        border-radius:0 8px 8px 0;font-size:12.3px;color:#6b4c00;margin-top:12px}
+  .foot{color:var(--ink-3);font-size:11.5px;text-align:center;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>作品公网可访问 · v1.0.0</h1>
+  <div class="sub">my-first-site（这一周 · 课表与 DDL 助手）｜ 2026-10-20 ｜ tag <code>v1.0.0</code></div>
+
+  <div class="card">
+    <div class="url">
+      <span class="k">公网地址</span>
+      <span class="v">https://my-first-site-d0g3re4p71560e327-1500310885.tcloudbaseapp.com/index.html</span>
+    </div>
+    <div class="shot"><img src="page-home.png" alt="作品公网首页"></div>
+    <div class="facts">
+      <div class="fact"><b>页面版本</b><span>v1.0.0</span></div>
+      <div class="fact"><b>数据</b><span>courses 10 · ddls 10</span></div>
+      <div class="fact"><b>发布前检查</b><span>8 / 8 全绿</span></div>
+      <div class="fact"><b>部署文件</b><span>8 个</span></div>
+    </div>
+    <div class="note">
+      <b>关于「地址栏」：</b>页面是真实线上页面（自动化浏览器实拍，1280×900 视口，即用户打开看到的样子）；
+      但自动化工具<b>截不到浏览器外框</b>，所以地址以卡片形式列出真实 URL —— <b>没有假装成地址栏</b>。
+      要一张带真地址栏的：用 Edge 打开上面的地址 → <code>Alt+PrintScreen</code> → 粘贴到画图保存。
+    </div>
+  </div>
+
+  <div class="foot">
+    my-first-site · 28 天 · 从 Day 2 的第一次 push 到今天的 v1.0.0
+  </div>
+</div>
+</body>
+</html>
